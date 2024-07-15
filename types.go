@@ -88,15 +88,17 @@ type Library struct {
 }
 
 func (l Library) String() string {
-	structureNames := "\n"
+	structureInfo := "\n"
 	for _, structure := range l.Structures {
-		structureNames += "      " + structure.String() + "\n"
+		structureInfo += "      " + structure.String() + "\n"
+		structureElements := structure.ListElements()
+		structureInfo += structureElements
 	}
 	return fmt.Sprintf(`Library:
    Version: %d
    Name: %s
    Units: %v
-   Structures:%s`, l.Header, l.LibName, l.Units, structureNames)
+   Structures:%s`, l.Header, l.LibName, l.Units, structureInfo)
 }
 
 type Structure struct {
@@ -107,6 +109,14 @@ type Structure struct {
 
 func (s Structure) String() string {
 	return s.StrName
+}
+
+func (s Structure) ListElements() string {
+	result := ""
+	for _, v := range s.Elements {
+		result += "         " + v.String() + "\n"
+	}
+	return result
 }
 
 type Boundary struct {
@@ -153,7 +163,7 @@ func (t Text) GetData() any {
 	return t.Textbody.String()
 }
 func (t Text) String() string {
-	return fmt.Sprintf("Text - ElFlags: %v, Plex: %v, Layer: %v, Textbody: %s", t.ElFlags, t.Plex, t.Layer, t.Textbody)
+	return fmt.Sprintf("Text - ElFlags: %v, Plex: %v, Layer: %v, Textbody: %s, XY: %v", t.ElFlags, t.Plex, t.Layer, t.Textbody, t.Textbody.XY)
 }
 
 type Node struct {
@@ -281,6 +291,24 @@ func getDataSlice[T any](data Record) []T {
 	return result
 }
 
+func getRealPoint(data Record) float64 {
+	var number uint64
+
+	reader := bytes.NewReader(data.Data)
+	err := binary.Read(reader, binary.BigEndian, &number)
+	if err != nil {
+		log.Fatalf("could not read binary data: %v", err)
+	}
+	sign := float64(1)
+	if fmt.Sprintf("%064b", number)[0] == '1' {
+		sign = float64(-1)
+	}
+	exponent := int8((number >> 56))
+	mantisse := binaryToFloat(fmt.Sprintf("%064b", number<<8))
+	floatValue := sign * mantisse * math.Pow(16, math.Abs(float64(exponent))-64)
+	return floatValue
+}
+
 func getDataPoint[T any](data Record) T {
 	var result T
 	reader := bytes.NewReader(data.Data)
@@ -348,9 +376,9 @@ func (r Record) GetData() any {
 	case "STRANS":
 		return getDataPoint[uint16](r)
 	case "MAG":
-		return getDataPoint[float64](r)
+		return getRealPoint(r)
 	case "ANGLE":
-		return getDataPoint[float64](r)
+		return getRealPoint(r)
 	case "REFLIBS":
 		return getDataString(r)
 	case "FONTS":

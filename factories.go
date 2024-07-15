@@ -123,8 +123,8 @@ func srefFactory(reader *bufio.Reader) (*SRef, error) {
 		Plex:    0,
 		Sname:   "",
 		Strans:  0,
-		Mag:     -1,
-		Angle:   -1,
+		Mag:     1,
+		Angle:   0,
 		XY:      []int32{},
 	}
 OuterLoop:
@@ -161,8 +161,8 @@ func arefFactory(reader *bufio.Reader) (*ARef, error) {
 		Plex:    0,
 		Sname:   "",
 		Strans:  0,
-		Mag:     -1,
-		Angle:   -1,
+		Mag:     1,
+		Angle:   0,
 		Colrow:  []int16{},
 		XY:      []int32{},
 	}
@@ -205,8 +205,8 @@ func textFactory(reader *bufio.Reader) (*Text, error) {
 			Texttype:     -1,
 			Presentation: 0,
 			Strans:       0,
-			Mag:          -1,
-			Angle:        -1,
+			Mag:          1,
+			Angle:        0,
 			StringBody:   "",
 			XY:           []int32{},
 		},
