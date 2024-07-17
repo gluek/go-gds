@@ -7,6 +7,8 @@ import (
 	"log"
 	"math"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 var Datatypes map[string]string = map[string]string{
@@ -247,14 +249,61 @@ func (t Textbody) String() string {
 	return t.StringBody
 }
 
-func binaryToFloat(f string) float64 {
-	result := 0.0
-	for i := range len(f) {
-		if f[i] == '1' {
-			result += math.Pow(2, float64(-1*(i+1)))
-		}
+func bitsToByteArray(i uint64) []byte {
+	return []byte{
+		byte(i >> 56),
+		byte(i >> 48),
+		byte(i >> 40),
+		byte(i >> 32),
+		byte(i >> 24),
+		byte(i >> 16),
+		byte(i >> 8),
+		byte(i),
 	}
-	return result
+}
+
+// Convert bits which represents 8-byte real with 1-bit sign, 7-bit exponent and 56-bit mantissa to IEEE754 float64
+func decodeReal(bits uint64) float64 {
+	sign := 1.0
+	if uint64(bits&0x80_00_00_00_00_00_00_00) > 0 {
+		sign = -1.0
+	}
+	exponent := int8(bits >> 56)
+	rangingFactor := float64(uint64(0b00000001_00000000_00000000_00000000_00000000_00000000_00000000_00000000))
+	mantissa := float64(bits&0x00_ff_ff_ff_ff_ff_ff_ff) / rangingFactor
+	return sign * mantissa * math.Pow(16, math.Abs(float64(exponent))-64)
+}
+
+// Convert IEEE754 float64 to 8-byte real with 1-bit sign, 7-bit exponent and 56-bit mantissa
+func encodeReal(fl float64) uint64 {
+	if fl == 0.0 {
+		return uint64(0x00_00_00_00_00_00_00_00)
+	}
+	valueScientifc := fmt.Sprintf("%b", math.Abs(fl))
+	sign := uint64(0x00_00_00_00_00_00_00_00)
+	if fl < 0 {
+		sign = uint64(0x80_00_00_00_00_00_00_00)
+	}
+	parts := strings.Split(valueScientifc, "p")
+	factor, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		log.Fatalf("could not parse magnitude: %v", err)
+	}
+	exp, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		log.Fatalf("could not parse exponent: %v", err)
+	}
+	factor = factor << 11
+	newExp := int64((exp + 53) / 4)
+	expRemainder := (exp + 53) % 4
+	if expRemainder > 0 {
+		factor = factor >> (4 - expRemainder)
+		newExp++
+	} else if expRemainder < 0 {
+		factor = factor >> (-expRemainder)
+	}
+	newExpUint := uint64(newExp + 64)
+	return uint64(sign | (factor >> 8) | (newExpUint << 56))
 }
 
 func getRealSlice(data Record) []float64 {
@@ -267,14 +316,7 @@ func getRealSlice(data Record) []float64 {
 		log.Fatalf("could not read binary data: %v", err)
 	}
 	for i, number := range initSlice {
-		sign := float64(1)
-		if fmt.Sprintf("%064b", number)[0] == '1' {
-			sign = float64(-1)
-		}
-		exponent := int8((number >> 56))
-		mantisse := binaryToFloat(fmt.Sprintf("%064b", number<<8))
-		value := sign * mantisse * math.Pow(16, math.Abs(float64(exponent))-64)
-		finalSlice[i] = value
+		finalSlice[i] = decodeReal(number)
 	}
 	return finalSlice
 }
@@ -299,14 +341,11 @@ func getRealPoint(data Record) float64 {
 	if err != nil {
 		log.Fatalf("could not read binary data: %v", err)
 	}
-	sign := float64(1)
-	if fmt.Sprintf("%064b", number)[0] == '1' {
-		sign = float64(-1)
-	}
-	exponent := int8((number >> 56))
-	mantisse := binaryToFloat(fmt.Sprintf("%064b", number<<8))
-	floatValue := sign * mantisse * math.Pow(16, math.Abs(float64(exponent))-64)
-	return floatValue
+	return decodeReal(number)
+}
+
+func writeReal(fl float64) []byte {
+	return bitsToByteArray(encodeReal(fl))
 }
 
 func getDataPoint[T any](data Record) T {
