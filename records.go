@@ -8,6 +8,15 @@ import (
 	"log"
 )
 
+// Wraps a record slice with their start record "{ELEMENTTYPE}" and end record "ENDEL"
+func wrapStartEnd(elementType string, records []Record) []Record {
+	wrappedRecords := []Record{}
+	wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: elementType, Data: []byte{}})
+	wrappedRecords = append(wrappedRecords, records...)
+	wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
+	return wrappedRecords
+}
+
 func decodeRecord(reader *bufio.Reader) (*Record, error) {
 	var n int
 	var err error
@@ -39,7 +48,7 @@ func decodeRecord(reader *bufio.Reader) (*Record, error) {
 
 	n, err = io.ReadFull(reader, bData)
 	if n != int(size-4) {
-		log.Printf("wrong number of data bytes. expected: %d got: %d\n", size-4, n)
+		log.Printf("wrong number of data bytes for %s/%s. expected: %d got: %d\n", datatype, RecordTypes[datatype], size-4, n)
 	}
 	if err != nil {
 		return nil, err

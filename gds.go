@@ -2,6 +2,7 @@ package gds
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 )
 
@@ -17,4 +18,16 @@ func ReadGDS(f *os.File) (*Library, error) {
 		return nil, err
 	}
 	return library, nil
+}
+
+func WriteGDS(f *os.File, lib *Library) error {
+	writer := bufio.NewWriter(f)
+	for _, record := range lib.Records() {
+		_, err := writer.Write(record.Bytes())
+		if err != nil {
+			return fmt.Errorf("could not write record %v to library: %v", record, err)
+		}
+	}
+	writer.Flush()
+	return nil
 }

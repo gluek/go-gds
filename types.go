@@ -217,7 +217,7 @@ func (r Record) String() string {
 
 func (r Record) Bytes() []byte {
 	resultBytes := []byte{}
-	resultBytes = append(resultBytes, byte(r.Size>>8), byte(r.Size>>8))
+	resultBytes = append(resultBytes, byte(r.Size>>8), byte(r.Size))
 	resultBytes = append(resultBytes, RecordTypesBytes[r.Datatype]...)
 	resultBytes = append(resultBytes, r.Data...)
 	return resultBytes
@@ -226,6 +226,7 @@ func (r Record) Bytes() []byte {
 type Element interface {
 	String() string
 	GetData() any
+	Records() []Record
 }
 
 type Library struct {
@@ -249,6 +250,18 @@ func (l Library) String() string {
    Units: %v
    Structures:%s`, l.Header, l.LibName, l.Units, structureInfo)
 }
+func (l Library) Records() []Record {
+	records := []Record{}
+	records = append(records, Record{Size: 4 + 2, Datatype: "HEADER", Data: gotypeToBytes(l.Header)})
+	records = append(records, Record{Size: uint16(4 + 2*len(l.BgnLib)), Datatype: "BGNLIB", Data: gotypeToBytes(l.BgnLib)})
+	records = append(records, Record{Size: uint16(4 + len([]byte(l.LibName))), Datatype: "LIBNAME", Data: gotypeToBytes(l.LibName)})
+	records = append(records, Record{Size: 4 + 16, Datatype: "UNITS", Data: gotypeToBytes(l.Units)})
+	for _, structure := range l.Structures {
+		records = append(records, structure.Records()...)
+	}
+	records = append(records, Record{Size: 4, Datatype: "ENDLIB", Data: []byte{}})
+	return records
+}
 
 type Structure struct {
 	BgnStr   []int16
@@ -267,6 +280,16 @@ func (s Structure) ListElements() string {
 	}
 	return result
 }
+func (s Structure) Records() []Record {
+	records := []Record{}
+	records = append(records, Record{Size: uint16(4 + 2*len(s.BgnStr)), Datatype: "BGNSTR", Data: gotypeToBytes(s.BgnStr)})
+	records = append(records, Record{Size: uint16(4 + len([]byte(s.StrName))), Datatype: "STRNAME", Data: gotypeToBytes(s.StrName)})
+	for _, element := range s.Elements {
+		records = append(records, element.Records()...)
+	}
+	records = append(records, Record{Size: 4, Datatype: "ENDSTR", Data: []byte{}})
+	return records
+}
 
 type Boundary struct {
 	ElFlags  uint16
@@ -281,6 +304,9 @@ func (b Boundary) GetData() any {
 }
 func (b Boundary) String() string {
 	return fmt.Sprintf("Boundary - ElFlags: %v, Plex: %v, Layer: %v, Datatype: %v, XY: %v", b.ElFlags, b.Plex, b.Layer, b.Datatype, b.XY)
+}
+func (b Boundary) Records() []Record {
+	return wrapStartEnd("BOUNDARY", fieldsToRecords(b))
 }
 
 type Path struct {
@@ -299,6 +325,9 @@ func (p Path) GetData() any {
 func (p Path) String() string {
 	return fmt.Sprintf("Path - ElFlags: %v, Plex: %v, Layer: %v, Datatype: %v, Pathtype: %v, Width: %v, XY: %v",
 		p.ElFlags, p.Plex, p.Layer, p.Datatype, p.Pathtype, p.Width, p.XY)
+}
+func (p Path) Records() []Record {
+	return wrapStartEnd("PATH", fieldsToRecords(p))
 }
 
 type Text struct {
@@ -320,6 +349,9 @@ func (t Text) GetData() any {
 func (t Text) String() string {
 	return fmt.Sprintf("Text - ElFlags: %v, Plex: %v, Layer: %v, XY: %v", t.ElFlags, t.Plex, t.Layer, t.XY)
 }
+func (t Text) Records() []Record {
+	return wrapStartEnd("TEXT", fieldsToRecords(t))
+}
 
 type Node struct {
 	ElFlags  uint16
@@ -335,6 +367,9 @@ func (n Node) GetData() any {
 func (n Node) String() string {
 	return fmt.Sprintf("Node - ElFlags: %v, Plex: %v, Layer: %v, Nodetype: %v, XY: %v", n.ElFlags, n.Plex, n.Layer, n.Nodetype, n.XY)
 }
+func (n Node) Records() []Record {
+	return wrapStartEnd("NODE", fieldsToRecords(n))
+}
 
 type Box struct {
 	ElFlags uint16
@@ -349,6 +384,9 @@ func (b Box) GetData() any {
 }
 func (b Box) String() string {
 	return fmt.Sprintf("Box - ElFlags: %v, Plex: %v, Layer: %v, Boxtype: %v, XY: %v", b.ElFlags, b.Plex, b.Layer, b.Boxtype, b.XY)
+}
+func (b Box) Records() []Record {
+	return wrapStartEnd("BOX", fieldsToRecords(b))
 }
 
 type SRef struct {
@@ -368,6 +406,9 @@ func (s SRef) String() string {
 	return fmt.Sprintf("SRef - ElFlags: %v, Plex: %v, Sname: %v, Strans: %v, Mag: %v, Angle: %v, XY: %v",
 		s.ElFlags, s.Plex, s.Sname, s.Strans, s.Mag, s.Angle, s.XY)
 }
+func (s SRef) Records() []Record {
+	return wrapStartEnd("SREF", fieldsToRecords(s))
+}
 
 type ARef struct {
 	ElFlags uint16
@@ -384,44 +425,9 @@ func (a ARef) GetData() any {
 	return a.XY
 }
 func (a ARef) String() string {
-	return fmt.Sprintf("ARef - ElFlags: %v, Plex: %v, Sname: %v, Strans: %v, Mag: %v, Angle: %v, Colrow: %v, XY: %v",
+	return fmt.Sprintf("ARef - ElFlags: %v, Plex: %v, Sname: %s, Strans: %v, Mag: %v, Angle: %v, Colrow: %v, XY: %v",
 		a.ElFlags, a.Plex, a.Sname, a.Strans, a.Mag, a.Angle, a.Colrow, a.XY)
 }
-
 func (a ARef) Records() []Record {
-	return []Record{
-		{Size: 4, Datatype: "AREF", Data: []byte{}},
-		{Size: 4 + 2,
-			Datatype: "ELFLAGS", Data: gotypeToBytes(a.ElFlags)},
-		{Size: 4 + 2,
-			Datatype: "PLEX", Data: gotypeToBytes(a.Plex)},
-		{Size: uint16(4 + len(a.Sname)),
-			Datatype: "SNAME", Data: gotypeToBytes(a.Sname)},
-		{Size: 4 + 2,
-			Datatype: "STRANS", Data: gotypeToBytes(a.Strans)},
-		{Size: 4 + 8,
-			Datatype: "MAG", Data: gotypeToBytes(a.Mag)},
-		{Size: 4 + 8,
-			Datatype: "ANGLE", Data: gotypeToBytes(a.Angle)},
-		{Size: uint16(4 + len(a.Colrow)*2),
-			Datatype: "COLROW", Data: gotypeToBytes(a.Colrow)},
-		{Size: uint16(4 + len(a.XY)*4),
-			Datatype: "XY", Data: gotypeToBytes(a.XY)},
-		{Size: 4,
-			Datatype: "ENDEL", Data: []byte{}},
-	}
-}
-
-type Textbody struct {
-	Texttype     int16
-	Presentation uint16
-	Strans       uint16
-	Mag          float64
-	Angle        float64
-	XY           []int32
-	StringBody   string
-}
-
-func (t Textbody) String() string {
-	return t.StringBody
+	return wrapStartEnd("AREF", fieldsToRecords(a))
 }

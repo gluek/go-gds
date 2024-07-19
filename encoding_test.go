@@ -1,8 +1,8 @@
 package gds
 
 import (
+	"bufio"
 	"bytes"
-	"fmt"
 	"testing"
 )
 
@@ -18,6 +18,10 @@ func assertEqualByteSlice(t *testing.T, a []byte, b []byte) {
 		return
 	}
 	t.Fatalf("%v != %v", a, b)
+}
+
+func mockFilehandler(data []byte) *bufio.Reader {
+	return bufio.NewReader(bytes.NewReader(data))
 }
 
 func TestGetRealSlice(t *testing.T) {
@@ -81,7 +85,7 @@ func TestGotypeToBytes(t *testing.T) {
 	assertEqualByteSlice(t, []byte("test123"), gotypeToBytes("test123"))
 }
 
-func TestFieldstoRecords(t *testing.T) {
+func TestRecordsToRecords(t *testing.T) {
 	arefTest := ARef{
 		ElFlags: 0,
 		Plex:    0,
@@ -92,9 +96,15 @@ func TestFieldstoRecords(t *testing.T) {
 		Colrow:  []int16{0, 0},
 		XY:      []int32{0, 0, 1, 1},
 	}
-	records := fieldsToRecords(arefTest)
-	for _, v := range records {
-		fmt.Println(v)
+	recordsAref := fieldsToRecords(arefTest)
+	recordsAref = append(recordsAref, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
+	arefReader := mockFilehandler(recordsToBytes(recordsAref))
+	arefNew, err := decodeAREF(arefReader)
+	if err != nil {
+		t.Fatalf("error decoding aref: %v", err)
+	}
+	if arefTest.String() != arefNew.String() {
+		t.Fatalf("%v not equal to %v", arefTest, arefNew)
 	}
 
 	textTest := Text{
@@ -109,9 +119,15 @@ func TestFieldstoRecords(t *testing.T) {
 		XY:           []int32{0, 0, 1, 1},
 		StringBody:   "Test",
 	}
-	records = fieldsToRecords(textTest)
-	for _, v := range records {
-		fmt.Println(v)
+	recordsText := fieldsToRecords(textTest)
+	recordsText = append(recordsText, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
+	textReader := mockFilehandler(recordsToBytes(recordsText))
+	textNew, err := decodeText(textReader)
+	if err != nil {
+		t.Fatalf("error decoding aref: %v", err)
+	}
+	if textTest.String() != textNew.String() {
+		t.Fatalf("%v not equal to %v", textNew, textNew)
 	}
 
 }

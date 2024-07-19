@@ -26,6 +26,14 @@ func fieldsToRecords(data any) []Record {
 	return records
 }
 
+func recordsToBytes(records []Record) []byte {
+	var result []byte
+	for _, rec := range records {
+		result = append(result, rec.Bytes()...)
+	}
+	return result
+}
+
 func gotypeToBytes(value any) []byte {
 	switch reflect.TypeOf(value) {
 	case reflect.TypeOf(int16(0)):
