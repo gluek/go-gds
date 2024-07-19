@@ -11,6 +11,21 @@ import (
 	"strings"
 )
 
+func fieldsToRecords(data any) []Record {
+	records := []Record{}
+	v := reflect.ValueOf(data)
+	for i := range v.NumField() {
+		data := gotypeToBytes(v.Field(i).Interface())
+		newRecord := Record{
+			Size:     uint16(4 + len(data)),
+			Datatype: strings.ToUpper(v.Type().Field(i).Name),
+			Data:     data,
+		}
+		records = append(records, newRecord)
+	}
+	return records
+}
+
 func gotypeToBytes(value any) []byte {
 	switch reflect.TypeOf(value) {
 	case reflect.TypeOf(int16(0)):
@@ -151,7 +166,7 @@ func getDataPoint[T any](data Record) T {
 	reader := bytes.NewReader(data.Data)
 	err := binary.Read(reader, binary.BigEndian, &result)
 	if err != nil {
-		log.Fatalf("could not read binary data: %v", err)
+		log.Fatalf("could not read binary data. RecordType: %s, %v", data.Datatype, err)
 	}
 	return result
 }

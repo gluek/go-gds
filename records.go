@@ -67,7 +67,7 @@ OuterLoop:
 		case "ELFLAGS":
 			boundary.ElFlags = newRecord.GetData().(uint16)
 		case "PLEX":
-			boundary.Plex = newRecord.GetData().(int16)
+			boundary.Plex = newRecord.GetData().(int32)
 		case "LAYER":
 			boundary.Layer = newRecord.GetData().(int16)
 		case "DATATYPE":
@@ -101,7 +101,7 @@ OuterLoop:
 		case "ELFLAGS":
 			path.ElFlags = newRecord.GetData().(uint16)
 		case "PLEX":
-			path.Plex = newRecord.GetData().(int16)
+			path.Plex = newRecord.GetData().(int32)
 		case "LAYER":
 			path.Layer = newRecord.GetData().(int16)
 		case "DATATYPE":
@@ -139,7 +139,7 @@ OuterLoop:
 		case "ELFLAGS":
 			sref.ElFlags = newRecord.GetData().(uint16)
 		case "PLEX":
-			sref.Plex = newRecord.GetData().(int16)
+			sref.Plex = newRecord.GetData().(int32)
 		case "SNAME":
 			sref.Sname = newRecord.GetData().(string)
 		case "STRANS":
@@ -178,7 +178,7 @@ OuterLoop:
 		case "ELFLAGS":
 			aref.ElFlags = newRecord.GetData().(uint16)
 		case "PLEX":
-			aref.Plex = newRecord.GetData().(int16)
+			aref.Plex = newRecord.GetData().(int32)
 		case "SNAME":
 			aref.Sname = newRecord.GetData().(string)
 		case "STRANS":
@@ -198,18 +198,16 @@ OuterLoop:
 
 func decodeText(reader *bufio.Reader) (*Text, error) {
 	text := Text{
-		ElFlags: 0,
-		Plex:    0,
-		Layer:   -1,
-		Textbody: Textbody{
-			Texttype:     -1,
-			Presentation: 0,
-			Strans:       0,
-			Mag:          1,
-			Angle:        0,
-			StringBody:   "",
-			XY:           []int32{},
-		},
+		ElFlags:      0,
+		Plex:         0,
+		Layer:        -1,
+		Texttype:     -1,
+		Presentation: 0,
+		Strans:       0,
+		Mag:          1,
+		Angle:        0,
+		StringBody:   "",
+		XY:           []int32{},
 	}
 OuterLoop:
 	for {
@@ -223,7 +221,7 @@ OuterLoop:
 		case "ELFLAGS":
 			text.ElFlags = newRecord.GetData().(uint16)
 		case "PLEX":
-			text.Plex = newRecord.GetData().(int16)
+			text.Plex = newRecord.GetData().(int32)
 		case "LAYER":
 			text.Layer = newRecord.GetData().(int16)
 		case "TEXTTYPE":
@@ -265,7 +263,7 @@ OuterLoop:
 		case "ELFLAGS":
 			node.ElFlags = newRecord.GetData().(uint16)
 		case "PLEX":
-			node.Plex = newRecord.GetData().(int16)
+			node.Plex = newRecord.GetData().(int32)
 		case "LAYER":
 			node.Layer = newRecord.GetData().(int16)
 		case "NODETYPE":
@@ -297,7 +295,7 @@ OuterLoop:
 		case "ELFLAGS":
 			box.ElFlags = newRecord.GetData().(uint16)
 		case "PLEX":
-			box.Plex = newRecord.GetData().(int16)
+			box.Plex = newRecord.GetData().(int32)
 		case "LAYER":
 			box.Layer = newRecord.GetData().(int16)
 		case "BOXTYPE":

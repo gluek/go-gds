@@ -38,7 +38,7 @@ var RecordTypes map[string]string = map[string]string{
 	"1500": "NODE",         // begin of node element
 	"1602": "TEXTTYPE",     // texttype number
 	"1701": "PRESENTATION", // text presentation, font
-	"1906": "STRING",       // character string for text element
+	"1906": "STRINGBODY",   // character string for text element
 	"1a01": "STRANS",       // array reference, structure reference and text transform flags
 	"1b05": "MAG",          // magnification factor for text and references
 	"1c05": "ANGLE",        // rotation angle for text and references
@@ -85,7 +85,7 @@ var RecordTypesBytes map[string][]byte = map[string][]byte{
 	"NODE":         {0x15, 0x00}, // begin of node element
 	"TEXTTYPE":     {0x16, 0x02}, // texttype number
 	"PRESENTATION": {0x17, 0x01}, // text presentation, font
-	"STRING":       {0x19, 0x06}, // character string for text element
+	"STRINGBODY":   {0x19, 0x06}, // character string for text element
 	"STRANS":       {0x1a, 0x01}, // array reference, structure reference and text transform flags
 	"MAG":          {0x1b, 0x05}, // magnification factor for text and references
 	"ANGLE":        {0x1c, 0x05}, // rotation angle for text and references
@@ -164,7 +164,7 @@ func (r Record) GetData() any {
 		return getDataPoint[int16](r)
 	case "PRESENTATION":
 		return getDataPoint[uint16](r)
-	case "STRING":
+	case "STRINGBODY":
 		return getDataString(r)
 	case "STRANS":
 		return getDataPoint[uint16](r)
@@ -215,6 +215,14 @@ func (r Record) String() string {
 	return fmt.Sprintf("%s, Bytes: %d Data: %v", r.Datatype, r.Size, r.GetData())
 }
 
+func (r Record) Bytes() []byte {
+	resultBytes := []byte{}
+	resultBytes = append(resultBytes, byte(r.Size>>8), byte(r.Size>>8))
+	resultBytes = append(resultBytes, RecordTypesBytes[r.Datatype]...)
+	resultBytes = append(resultBytes, r.Data...)
+	return resultBytes
+}
+
 type Element interface {
 	String() string
 	GetData() any
@@ -262,7 +270,7 @@ func (s Structure) ListElements() string {
 
 type Boundary struct {
 	ElFlags  uint16
-	Plex     int16
+	Plex     int32
 	Layer    int16
 	Datatype int16
 	XY       []int32
@@ -277,7 +285,7 @@ func (b Boundary) String() string {
 
 type Path struct {
 	ElFlags  uint16
-	Plex     int16
+	Plex     int32
 	Layer    int16
 	Datatype int16
 	Pathtype int16
@@ -294,22 +302,28 @@ func (p Path) String() string {
 }
 
 type Text struct {
-	ElFlags uint16
-	Plex    int16
-	Layer   int16
-	Textbody
+	ElFlags      uint16
+	Plex         int32
+	Layer        int16
+	Texttype     int16
+	Presentation uint16
+	Strans       uint16
+	Mag          float64
+	Angle        float64
+	XY           []int32
+	StringBody   string
 }
 
 func (t Text) GetData() any {
-	return t.Textbody.String()
+	return t.StringBody
 }
 func (t Text) String() string {
-	return fmt.Sprintf("Text - ElFlags: %v, Plex: %v, Layer: %v, Textbody: %s, XY: %v", t.ElFlags, t.Plex, t.Layer, t.Textbody, t.Textbody.XY)
+	return fmt.Sprintf("Text - ElFlags: %v, Plex: %v, Layer: %v, XY: %v", t.ElFlags, t.Plex, t.Layer, t.XY)
 }
 
 type Node struct {
 	ElFlags  uint16
-	Plex     int16
+	Plex     int32
 	Layer    int16
 	Nodetype int16
 	XY       []int32
@@ -324,7 +338,7 @@ func (n Node) String() string {
 
 type Box struct {
 	ElFlags uint16
-	Plex    int16
+	Plex    int32
 	Layer   int16
 	Boxtype int16
 	XY      []int32
@@ -339,7 +353,7 @@ func (b Box) String() string {
 
 type SRef struct {
 	ElFlags uint16
-	Plex    int16
+	Plex    int32
 	Sname   string
 	Strans  uint16
 	Mag     float64
@@ -357,7 +371,7 @@ func (s SRef) String() string {
 
 type ARef struct {
 	ElFlags uint16
-	Plex    int16
+	Plex    int32
 	Sname   string
 	Strans  uint16
 	Mag     float64

@@ -2,6 +2,7 @@ package gds
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -78,4 +79,39 @@ func TestGotypeToBytes(t *testing.T) {
 			byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00)},
 		gotypeToBytes([]float64{0.5, 0.5}))
 	assertEqualByteSlice(t, []byte("test123"), gotypeToBytes("test123"))
+}
+
+func TestFieldstoRecords(t *testing.T) {
+	arefTest := ARef{
+		ElFlags: 0,
+		Plex:    0,
+		Sname:   "Test",
+		Strans:  0,
+		Mag:     1.0,
+		Angle:   0.0,
+		Colrow:  []int16{0, 0},
+		XY:      []int32{0, 0, 1, 1},
+	}
+	records := fieldsToRecords(arefTest)
+	for _, v := range records {
+		fmt.Println(v)
+	}
+
+	textTest := Text{
+		ElFlags:      0,
+		Plex:         0,
+		Layer:        1,
+		Texttype:     0,
+		Presentation: 0,
+		Strans:       0,
+		Mag:          1.0,
+		Angle:        0.0,
+		XY:           []int32{0, 0, 1, 1},
+		StringBody:   "Test",
+	}
+	records = fieldsToRecords(textTest)
+	for _, v := range records {
+		fmt.Println(v)
+	}
+
 }
