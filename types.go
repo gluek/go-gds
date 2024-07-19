@@ -1,14 +1,7 @@
 package gds
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
-	"log"
-	"math"
-	"reflect"
-	"strconv"
-	"strings"
 )
 
 var Datatypes map[string]string = map[string]string{
@@ -68,12 +61,158 @@ var RecordTypes map[string]string = map[string]string{
 	"3800": "ENDMASKS",     // end of MASK
 }
 
+var RecordTypesBytes map[string][]byte = map[string][]byte{
+	"HEADER":       {0x00, 0x02}, // version number
+	"BGNLIB":       {0x01, 0x02}, // begin of library, last modification data
+	"LIBNAME":      {0x02, 0x06}, // name of library
+	"UNITS":        {0x03, 0x05}, // user and database units, contains two eight-byte real numbers. The first number is the size of a database unit in user units. The second number is the size of a database unit in meters.
+	"ENDLIB":       {0x04, 0x00}, // end of library
+	"BGNSTR":       {0x05, 0x02}, // begin of structure + creation and modification time
+	"STRNAME":      {0x06, 0x06}, // name of structure
+	"ENDSTR":       {0x07, 0x00}, // end of structure
+	"BOUNDARY":     {0x08, 0x00}, // begin of boundary element
+	"PATH":         {0x09, 0x00}, // begin of path element
+	"SREF":         {0x0a, 0x00}, // begin of structure reference element
+	"AREF":         {0x0b, 0x00}, // begin of array reference element
+	"TEXT":         {0x0c, 0x00}, // begin of text element
+	"LAYER":        {0x0d, 0x02}, // layer number of element
+	"DATATYPE":     {0x0e, 0x02}, // Datatype number of element
+	"WIDTH":        {0x0f, 0x03}, // width of element in db units
+	"XY":           {0x10, 0x03}, // list of xy coordinates in db units
+	"ENDEL":        {0x11, 0x00}, // end of element
+	"SNAME":        {0x12, 0x06}, // name of structure reference
+	"COLROW":       {0x13, 0x02}, // number of colrow[0]=columns and colrow[1]=rows in array reference
+	"NODE":         {0x15, 0x00}, // begin of node element
+	"TEXTTYPE":     {0x16, 0x02}, // texttype number
+	"PRESENTATION": {0x17, 0x01}, // text presentation, font
+	"STRING":       {0x19, 0x06}, // character string for text element
+	"STRANS":       {0x1a, 0x01}, // array reference, structure reference and text transform flags
+	"MAG":          {0x1b, 0x05}, // magnification factor for text and references
+	"ANGLE":        {0x1c, 0x05}, // rotation angle for text and references
+	"REFLIBS":      {0x1f, 0x06}, // name of referenced libraries
+	"FONTS":        {0x20, 0x06}, // name of text fonts definition files
+	"PATHTYPE":     {0x21, 0x02}, // type of PATH element end ( rounded, square)
+	"GENERATIONS":  {0x22, 0x02}, // number of deleted structure ?????
+	"ATTRTABLE":    {0x23, 0x06}, // attribute table, used in combination with element properties
+	"ELFLAGS":      {0x26, 0x01}, // template data
+	"NODETYPE":     {0x2a, 0x02}, // node type number for NODE element
+	"PROPATTR":     {0x2b, 0x02}, // attribute number
+	"PROPVALUE":    {0x2c, 0x06}, // attribute name
+	"BOX":          {0x2d, 0x00}, // begin of box element
+	"BOXTYPE":      {0x2e, 0x02}, // boxtype for box element
+	"PLEX":         {0x2f, 0x03}, // plex number
+	"TAPENUM":      {0x32, 0x02}, // tape number
+	"TAPECODE":     {0x33, 0x02}, // tape code
+	"FORMAT":       {0x36, 0x02}, // format type
+	"MASK":         {0x37, 0x06}, // list of layers
+	"ENDMASKS":     {0x38, 0x00}, // end of MASK
+}
+
 const HEADERSIZE = 4
 
 type Record struct {
 	Size     uint16
 	Datatype string
 	Data     []byte
+}
+
+func (r Record) GetData() any {
+	switch r.Datatype {
+	case "HEADER":
+		return getDataPoint[int16](r)
+	case "BGNLIB":
+		return getDataSlice[int16](r)
+	case "LIBNAME":
+		return getDataString(r)
+	case "UNITS":
+		return getRealSlice(r)
+	case "ENDLIB":
+		return "No data"
+	case "BGNSTR":
+		return getDataSlice[int16](r)
+	case "STRNAME":
+		return getDataString(r)
+	case "ENDSTR":
+		return "No data"
+	case "BOUNDARY":
+		return "No data"
+	case "PATH":
+		return "No data"
+	case "SREF":
+		return "No data"
+	case "AREF":
+		return "No data"
+	case "TEXT":
+		return "No data"
+	case "LAYER":
+		return getDataPoint[int16](r)
+	case "DATATYPE":
+		return getDataPoint[int16](r)
+	case "WIDTH":
+		return getDataPoint[int32](r)
+	case "XY":
+		return getDataSlice[int32](r)
+	case "ENDEL":
+		return "No data"
+	case "SNAME":
+		return getDataString(r)
+	case "COLROW":
+		return getDataSlice[int16](r)
+	case "NODE":
+		return "No data"
+	case "TEXTTYPE":
+		return getDataPoint[int16](r)
+	case "PRESENTATION":
+		return getDataPoint[uint16](r)
+	case "STRING":
+		return getDataString(r)
+	case "STRANS":
+		return getDataPoint[uint16](r)
+	case "MAG":
+		return getRealPoint(r)
+	case "ANGLE":
+		return getRealPoint(r)
+	case "REFLIBS":
+		return getDataString(r)
+	case "FONTS":
+		return getDataString(r)
+	case "PATHTYPE":
+		return getDataPoint[int16](r)
+	case "GENERATIONS":
+		return getDataPoint[int16](r)
+	case "ATTRTABLE":
+		return getDataString(r)
+	case "ELFLAGS":
+		return getDataPoint[uint16](r)
+	case "NODETYPE":
+		return getDataPoint[int16](r)
+	case "PROPATTR":
+		return getDataPoint[int16](r)
+	case "PROPVALUE":
+		return getDataString(r)
+	case "BOX":
+		return "No data"
+	case "BOXTYPE":
+		return getDataPoint[int16](r)
+	case "PLEX":
+		return getDataPoint[int32](r)
+	case "TAPENUM":
+		return getDataPoint[int16](r)
+	case "TAPECODE":
+		return getDataPoint[int16](r)
+	case "FORMAT":
+		return getDataPoint[int16](r)
+	case "MASK":
+		return getDataString(r)
+	case "ENDMASKS":
+		return "No data"
+	default:
+		panic("unexpected datatype")
+	}
+}
+
+func (r Record) String() string {
+	return fmt.Sprintf("%s, Bytes: %d Data: %v", r.Datatype, r.Size, r.GetData())
 }
 
 type Element interface {
@@ -235,6 +374,30 @@ func (a ARef) String() string {
 		a.ElFlags, a.Plex, a.Sname, a.Strans, a.Mag, a.Angle, a.Colrow, a.XY)
 }
 
+func (a ARef) Records() []Record {
+	return []Record{
+		{Size: 4, Datatype: "AREF", Data: []byte{}},
+		{Size: 4 + 2,
+			Datatype: "ELFLAGS", Data: gotypeToBytes(a.ElFlags)},
+		{Size: 4 + 2,
+			Datatype: "PLEX", Data: gotypeToBytes(a.Plex)},
+		{Size: uint16(4 + len(a.Sname)),
+			Datatype: "SNAME", Data: gotypeToBytes(a.Sname)},
+		{Size: 4 + 2,
+			Datatype: "STRANS", Data: gotypeToBytes(a.Strans)},
+		{Size: 4 + 8,
+			Datatype: "MAG", Data: gotypeToBytes(a.Mag)},
+		{Size: 4 + 8,
+			Datatype: "ANGLE", Data: gotypeToBytes(a.Angle)},
+		{Size: uint16(4 + len(a.Colrow)*2),
+			Datatype: "COLROW", Data: gotypeToBytes(a.Colrow)},
+		{Size: uint16(4 + len(a.XY)*4),
+			Datatype: "XY", Data: gotypeToBytes(a.XY)},
+		{Size: 4,
+			Datatype: "ENDEL", Data: []byte{}},
+	}
+}
+
 type Textbody struct {
 	Texttype     int16
 	Presentation uint16
@@ -247,216 +410,4 @@ type Textbody struct {
 
 func (t Textbody) String() string {
 	return t.StringBody
-}
-
-func bitsToByteArray(i uint64) []byte {
-	return []byte{
-		byte(i >> 56),
-		byte(i >> 48),
-		byte(i >> 40),
-		byte(i >> 32),
-		byte(i >> 24),
-		byte(i >> 16),
-		byte(i >> 8),
-		byte(i),
-	}
-}
-
-// Convert bits which represents 8-byte real with 1-bit sign, 7-bit exponent and 56-bit mantissa to IEEE754 float64
-func decodeReal(bits uint64) float64 {
-	sign := 1.0
-	if uint64(bits&0x80_00_00_00_00_00_00_00) > 0 {
-		sign = -1.0
-	}
-	exponent := int8(bits >> 56)
-	rangingFactor := float64(uint64(0b00000001_00000000_00000000_00000000_00000000_00000000_00000000_00000000))
-	mantissa := float64(bits&0x00_ff_ff_ff_ff_ff_ff_ff) / rangingFactor
-	return sign * mantissa * math.Pow(16, math.Abs(float64(exponent))-64)
-}
-
-// Convert IEEE754 float64 to 8-byte real with 1-bit sign, 7-bit exponent and 56-bit mantissa
-func encodeReal(fl float64) uint64 {
-	if fl == 0.0 {
-		return uint64(0x00_00_00_00_00_00_00_00)
-	}
-	valueScientifc := fmt.Sprintf("%b", math.Abs(fl))
-	sign := uint64(0x00_00_00_00_00_00_00_00)
-	if fl < 0 {
-		sign = uint64(0x80_00_00_00_00_00_00_00)
-	}
-	parts := strings.Split(valueScientifc, "p")
-	factor, err := strconv.ParseUint(parts[0], 10, 64)
-	if err != nil {
-		log.Fatalf("could not parse magnitude: %v", err)
-	}
-	exp, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		log.Fatalf("could not parse exponent: %v", err)
-	}
-	factor = factor << 11
-	newExp := int64((exp + 53) / 4)
-	expRemainder := (exp + 53) % 4
-	if expRemainder > 0 {
-		factor = factor >> (4 - expRemainder)
-		newExp++
-	} else if expRemainder < 0 {
-		factor = factor >> (-expRemainder)
-	}
-	newExpUint := uint64(newExp + 64)
-	return uint64(sign | (factor >> 8) | (newExpUint << 56))
-}
-
-func getRealSlice(data Record) []float64 {
-	initSlice := make([]uint64, int((data.Size-HEADERSIZE)/8))
-	finalSlice := make([]float64, len(initSlice))
-
-	reader := bytes.NewReader(data.Data)
-	err := binary.Read(reader, binary.BigEndian, &initSlice)
-	if err != nil {
-		log.Fatalf("could not read binary data: %v", err)
-	}
-	for i, number := range initSlice {
-		finalSlice[i] = decodeReal(number)
-	}
-	return finalSlice
-}
-
-func getDataSlice[T any](data Record) []T {
-	var typeInit T
-	typeSize := reflect.TypeOf(typeInit).Size()
-	result := make([]T, int((data.Size-HEADERSIZE)/uint16(typeSize)))
-	reader := bytes.NewReader(data.Data)
-	err := binary.Read(reader, binary.BigEndian, &result)
-	if err != nil {
-		log.Fatalf("could not read binary data: %v", err)
-	}
-	return result
-}
-
-func getRealPoint(data Record) float64 {
-	var number uint64
-
-	reader := bytes.NewReader(data.Data)
-	err := binary.Read(reader, binary.BigEndian, &number)
-	if err != nil {
-		log.Fatalf("could not read binary data: %v", err)
-	}
-	return decodeReal(number)
-}
-
-func writeReal(fl float64) []byte {
-	return bitsToByteArray(encodeReal(fl))
-}
-
-func getDataPoint[T any](data Record) T {
-	var result T
-	reader := bytes.NewReader(data.Data)
-	err := binary.Read(reader, binary.BigEndian, &result)
-	if err != nil {
-		log.Fatalf("could not read binary data: %v", err)
-	}
-	return result
-}
-
-func getDataString(data Record) string {
-	return string(data.Data)
-}
-
-func (r Record) GetData() any {
-	switch r.Datatype {
-	case "HEADER":
-		return getDataPoint[int16](r)
-	case "BGNLIB":
-		return getDataSlice[int16](r)
-	case "LIBNAME":
-		return getDataString(r)
-	case "UNITS":
-		return getRealSlice(r)
-	case "ENDLIB":
-		return "No data"
-	case "BGNSTR":
-		return getDataSlice[int16](r)
-	case "STRNAME":
-		return getDataString(r)
-	case "ENDSTR":
-		return "No data"
-	case "BOUNDARY":
-		return "No data"
-	case "PATH":
-		return "No data"
-	case "SREF":
-		return "No data"
-	case "AREF":
-		return "No data"
-	case "TEXT":
-		return "No data"
-	case "LAYER":
-		return getDataPoint[int16](r)
-	case "DATATYPE":
-		return getDataPoint[int16](r)
-	case "WIDTH":
-		return getDataPoint[int32](r)
-	case "XY":
-		return getDataSlice[int32](r)
-	case "ENDEL":
-		return "No data"
-	case "SNAME":
-		return getDataString(r)
-	case "COLROW":
-		return getDataSlice[int16](r)
-	case "NODE":
-		return "No data"
-	case "TEXTTYPE":
-		return getDataPoint[int16](r)
-	case "PRESENTATION":
-		return getDataPoint[uint16](r)
-	case "STRING":
-		return getDataString(r)
-	case "STRANS":
-		return getDataPoint[uint16](r)
-	case "MAG":
-		return getRealPoint(r)
-	case "ANGLE":
-		return getRealPoint(r)
-	case "REFLIBS":
-		return getDataString(r)
-	case "FONTS":
-		return getDataString(r)
-	case "PATHTYPE":
-		return getDataPoint[int16](r)
-	case "GENERATIONS":
-		return getDataPoint[int16](r)
-	case "ATTRTABLE":
-		return getDataString(r)
-	case "ELFLAGS":
-		return getDataPoint[uint16](r)
-	case "NODETYPE":
-		return getDataPoint[int16](r)
-	case "PROPATTR":
-		return getDataPoint[int16](r)
-	case "PROPVALUE":
-		return getDataString(r)
-	case "BOX":
-		return "No data"
-	case "BOXTYPE":
-		return getDataPoint[int16](r)
-	case "PLEX":
-		return getDataPoint[int32](r)
-	case "TAPENUM":
-		return getDataPoint[int16](r)
-	case "TAPECODE":
-		return getDataPoint[int16](r)
-	case "FORMAT":
-		return getDataPoint[int16](r)
-	case "MASK":
-		return getDataString(r)
-	case "ENDMASKS":
-		return "No data"
-	default:
-		panic("unexpected datatype")
-	}
-}
-
-func (r Record) String() string {
-	return fmt.Sprintf("%s, Bytes: %d Data: %v", r.Datatype, r.Size, r.GetData())
 }

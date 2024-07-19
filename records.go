@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-func recordFactory(reader *bufio.Reader) (*Record, error) {
+func decodeRecord(reader *bufio.Reader) (*Record, error) {
 	var n int
 	var err error
 
@@ -47,7 +47,7 @@ func recordFactory(reader *bufio.Reader) (*Record, error) {
 	return &Record{Size: size, Datatype: RecordTypes[datatype], Data: bData}, nil
 }
 
-func boundaryFactory(reader *bufio.Reader) (*Boundary, error) {
+func decodeBoundary(reader *bufio.Reader) (*Boundary, error) {
 	boundary := Boundary{
 		ElFlags:  0,
 		Plex:     0,
@@ -57,7 +57,7 @@ func boundaryFactory(reader *bufio.Reader) (*Boundary, error) {
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +79,7 @@ OuterLoop:
 	return &boundary, nil
 }
 
-func pathFactory(reader *bufio.Reader) (*Path, error) {
+func decodePath(reader *bufio.Reader) (*Path, error) {
 	path := Path{
 		ElFlags:  0,
 		Plex:     0,
@@ -91,7 +91,7 @@ func pathFactory(reader *bufio.Reader) (*Path, error) {
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ OuterLoop:
 	return &path, nil
 }
 
-func srefFactory(reader *bufio.Reader) (*SRef, error) {
+func decodeSREF(reader *bufio.Reader) (*SRef, error) {
 	sref := SRef{
 		ElFlags: 0,
 		Plex:    0,
@@ -129,7 +129,7 @@ func srefFactory(reader *bufio.Reader) (*SRef, error) {
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +155,7 @@ OuterLoop:
 	return &sref, nil
 }
 
-func arefFactory(reader *bufio.Reader) (*ARef, error) {
+func decodeAREF(reader *bufio.Reader) (*ARef, error) {
 	aref := ARef{
 		ElFlags: 0,
 		Plex:    0,
@@ -168,7 +168,7 @@ func arefFactory(reader *bufio.Reader) (*ARef, error) {
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +196,7 @@ OuterLoop:
 	return &aref, nil
 }
 
-func textFactory(reader *bufio.Reader) (*Text, error) {
+func decodeText(reader *bufio.Reader) (*Text, error) {
 	text := Text{
 		ElFlags: 0,
 		Plex:    0,
@@ -213,7 +213,7 @@ func textFactory(reader *bufio.Reader) (*Text, error) {
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -245,7 +245,7 @@ OuterLoop:
 	return &text, nil
 }
 
-func nodeFactory(reader *bufio.Reader) (*Node, error) {
+func decodeNode(reader *bufio.Reader) (*Node, error) {
 	node := Node{
 		ElFlags:  0,
 		Plex:     0,
@@ -255,7 +255,7 @@ func nodeFactory(reader *bufio.Reader) (*Node, error) {
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -277,7 +277,7 @@ OuterLoop:
 	return &node, nil
 }
 
-func boxFactory(reader *bufio.Reader) (*Box, error) {
+func decodeBox(reader *bufio.Reader) (*Box, error) {
 	box := Box{
 		ElFlags: 0,
 		Plex:    0,
@@ -287,7 +287,7 @@ func boxFactory(reader *bufio.Reader) (*Box, error) {
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +309,7 @@ OuterLoop:
 	return &box, nil
 }
 
-func structureFactory(reader *bufio.Reader, bgnStrRecord *Record) (*Structure, error) {
+func decodeStructure(reader *bufio.Reader, bgnStrRecord *Record) (*Structure, error) {
 	structure := Structure{
 		BgnStr:   bgnStrRecord.GetData().([]int16),
 		StrName:  "Unknown",
@@ -317,7 +317,7 @@ func structureFactory(reader *bufio.Reader, bgnStrRecord *Record) (*Structure, e
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -327,43 +327,43 @@ OuterLoop:
 		case "STRNAME":
 			structure.StrName = newRecord.GetData().(string)
 		case "BOUNDARY":
-			element, err := boundaryFactory(reader)
+			element, err := decodeBoundary(reader)
 			if err != nil {
 				return nil, err
 			}
 			structure.Elements = append(structure.Elements, element)
 		case "PATH":
-			element, err := pathFactory(reader)
+			element, err := decodePath(reader)
 			if err != nil {
 				return nil, err
 			}
 			structure.Elements = append(structure.Elements, element)
 		case "SREF":
-			element, err := srefFactory(reader)
+			element, err := decodeSREF(reader)
 			if err != nil {
 				return nil, err
 			}
 			structure.Elements = append(structure.Elements, element)
 		case "AREF":
-			element, err := arefFactory(reader)
+			element, err := decodeAREF(reader)
 			if err != nil {
 				return nil, err
 			}
 			structure.Elements = append(structure.Elements, element)
 		case "TEXT":
-			element, err := textFactory(reader)
+			element, err := decodeText(reader)
 			if err != nil {
 				return nil, err
 			}
 			structure.Elements = append(structure.Elements, element)
 		case "NODE":
-			element, err := nodeFactory(reader)
+			element, err := decodeNode(reader)
 			if err != nil {
 				return nil, err
 			}
 			structure.Elements = append(structure.Elements, element)
 		case "BOX":
-			element, err := boxFactory(reader)
+			element, err := decodeBox(reader)
 			if err != nil {
 				return nil, err
 			}
@@ -373,7 +373,7 @@ OuterLoop:
 	return &structure, nil
 }
 
-func libraryFactory(reader *bufio.Reader) (*Library, error) {
+func decodeLibrary(reader *bufio.Reader) (*Library, error) {
 	library := Library{
 		Header:     0,
 		BgnLib:     []int16{},
@@ -383,7 +383,7 @@ func libraryFactory(reader *bufio.Reader) (*Library, error) {
 	}
 OuterLoop:
 	for {
-		newRecord, err := recordFactory(reader)
+		newRecord, err := decodeRecord(reader)
 		if err != nil {
 			return nil, err
 		}
@@ -397,7 +397,7 @@ OuterLoop:
 		case "UNITS":
 			library.Units = newRecord.GetData().([]float64)
 		case "BGNSTR":
-			element, err := structureFactory(reader, newRecord)
+			element, err := decodeStructure(reader, newRecord)
 			if err != nil {
 				return nil, err
 			}

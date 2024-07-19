@@ -12,7 +12,7 @@ func ReadGDS(f *os.File) (*Library, error) {
 	var err error
 
 	reader := bufio.NewReader(f)
-	library, err := libraryFactory(reader)
+	library, err := decodeLibrary(reader)
 	if err != nil {
 		return nil, err
 	}

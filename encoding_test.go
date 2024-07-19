@@ -1,11 +1,19 @@
 package gds
 
 import (
+	"bytes"
 	"testing"
 )
 
 func assertEqual(t *testing.T, a any, b any) {
 	if a == b {
+		return
+	}
+	t.Fatalf("%v != %v", a, b)
+}
+
+func assertEqualByteSlice(t *testing.T, a []byte, b []byte) {
+	if bytes.Equal(a, b) {
 		return
 	}
 	t.Fatalf("%v != %v", a, b)
@@ -51,7 +59,23 @@ func TestBitsToByteArray(t *testing.T) {
 	expected := []byte{byte(0b01000000), byte(0b10000000), byte(0b00000000), byte(0b00000000),
 		byte(0b00000000), byte(0b00000000), byte(0b00000000), byte(0b00000000)}
 	got := bitsToByteArray(uint64(0b01000000_10000000_00000000_00000000_00000000_00000000_00000000_00000000))
-	for i := range 8 {
-		assertEqual(t, expected[i], got[i])
-	}
+	assertEqualByteSlice(t, expected, got)
+}
+
+func TestGotypeToBytes(t *testing.T) {
+	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f)}, gotypeToBytes(int16(0x0f_0f)))
+	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f)}, gotypeToBytes(uint16(0x0f_0f)))
+	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f)}, gotypeToBytes(int32(0x0f_0f_0f_0f)))
+	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f)}, gotypeToBytes([]int16{0x0f_0f, 0x0f_0f}))
+	assertEqualByteSlice(t,
+		[]byte{byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f)},
+		gotypeToBytes([]int32{0x0f_0f_0f_0f, 0x0f_0f_0f_0f}))
+	assertEqualByteSlice(t,
+		[]byte{byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00)},
+		gotypeToBytes(float64(0.5)))
+	assertEqualByteSlice(t,
+		[]byte{byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00),
+			byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00)},
+		gotypeToBytes([]float64{0.5, 0.5}))
+	assertEqualByteSlice(t, []byte("test123"), gotypeToBytes("test123"))
 }
