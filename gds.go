@@ -22,10 +22,14 @@ func ReadGDS(f *os.File) (*Library, error) {
 
 func WriteGDS(f *os.File, lib *Library) error {
 	writer := bufio.NewWriter(f)
-	for _, record := range lib.Records() {
+	records, err := lib.Records()
+	if err != nil {
+		return fmt.Errorf("could not write GDSII file: %v", err)
+	}
+	for _, record := range records {
 		_, err := writer.Write(record.Bytes())
 		if err != nil {
-			return fmt.Errorf("could not write record %v to library: %v", record, err)
+			return fmt.Errorf("could not write record %v to file: %v", record, err)
 		}
 	}
 	writer.Flush()

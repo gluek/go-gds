@@ -116,7 +116,7 @@ type Record struct {
 	Data     []byte
 }
 
-func (r Record) GetData() any {
+func (r Record) GetData() (any, error) {
 	switch r.Datatype {
 	case "HEADER":
 		return getDataPoint[int16](r)
@@ -127,23 +127,23 @@ func (r Record) GetData() any {
 	case "UNITS":
 		return getRealSlice(r)
 	case "ENDLIB":
-		return "No data"
+		return "No data", nil
 	case "BGNSTR":
 		return getDataSlice[int16](r)
 	case "STRNAME":
 		return getDataString(r)
 	case "ENDSTR":
-		return "No data"
+		return "No data", nil
 	case "BOUNDARY":
-		return "No data"
+		return "No data", nil
 	case "PATH":
-		return "No data"
+		return "No data", nil
 	case "SREF":
-		return "No data"
+		return "No data", nil
 	case "AREF":
-		return "No data"
+		return "No data", nil
 	case "TEXT":
-		return "No data"
+		return "No data", nil
 	case "LAYER":
 		return getDataPoint[int16](r)
 	case "DATATYPE":
@@ -153,13 +153,13 @@ func (r Record) GetData() any {
 	case "XY":
 		return getDataSlice[int32](r)
 	case "ENDEL":
-		return "No data"
+		return "No data", nil
 	case "SNAME":
 		return getDataString(r)
 	case "COLROW":
 		return getDataSlice[int16](r)
 	case "NODE":
-		return "No data"
+		return "No data", nil
 	case "TEXTTYPE":
 		return getDataPoint[int16](r)
 	case "PRESENTATION":
@@ -191,7 +191,7 @@ func (r Record) GetData() any {
 	case "PROPVALUE":
 		return getDataString(r)
 	case "BOX":
-		return "No data"
+		return "No data", nil
 	case "BOXTYPE":
 		return getDataPoint[int16](r)
 	case "PLEX":
@@ -205,14 +205,18 @@ func (r Record) GetData() any {
 	case "MASK":
 		return getDataString(r)
 	case "ENDMASKS":
-		return "No data"
+		return "No data", nil
 	default:
 		panic("unexpected datatype")
 	}
 }
 
 func (r Record) String() string {
-	return fmt.Sprintf("%s, Bytes: %d Data: %v", r.Datatype, r.Size, r.GetData())
+	data, err := r.GetData()
+	if err != nil {
+		return fmt.Sprintf("error occurred: %v", err)
+	}
+	return fmt.Sprintf("%s, Bytes: %d Data: %v", r.Datatype, r.Size, data)
 }
 
 func (r Record) Bytes() []byte {
@@ -226,7 +230,7 @@ func (r Record) Bytes() []byte {
 type Element interface {
 	String() string
 	GetData() any
-	Records() []Record
+	Records() ([]Record, error)
 }
 
 type Library struct {
@@ -234,7 +238,7 @@ type Library struct {
 	BgnLib     []int16
 	LibName    string
 	Units      []float64
-	Structures []*Structure
+	Structures []Structure
 }
 
 func (l Library) String() string {
@@ -250,17 +254,12 @@ func (l Library) String() string {
    Units: %v
    Structures:%s`, l.Header, l.LibName, l.Units, structureInfo)
 }
-func (l Library) Records() []Record {
-	records := []Record{}
-	records = append(records, Record{Size: 4 + 2, Datatype: "HEADER", Data: gotypeToBytes(l.Header)})
-	records = append(records, Record{Size: uint16(4 + 2*len(l.BgnLib)), Datatype: "BGNLIB", Data: gotypeToBytes(l.BgnLib)})
-	records = append(records, Record{Size: uint16(4 + len([]byte(l.LibName))), Datatype: "LIBNAME", Data: gotypeToBytes(l.LibName)})
-	records = append(records, Record{Size: 4 + 16, Datatype: "UNITS", Data: gotypeToBytes(l.Units)})
-	for _, structure := range l.Structures {
-		records = append(records, structure.Records()...)
+func (l Library) Records() ([]Record, error) {
+	records, err := fieldsToRecords(l)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for library: %v", err)
 	}
-	records = append(records, Record{Size: 4, Datatype: "ENDLIB", Data: []byte{}})
-	return records
+	return wrapStartEnd("BGNLIB", records), nil
 }
 
 type Structure struct {
@@ -280,15 +279,12 @@ func (s Structure) ListElements() string {
 	}
 	return result
 }
-func (s Structure) Records() []Record {
-	records := []Record{}
-	records = append(records, Record{Size: uint16(4 + 2*len(s.BgnStr)), Datatype: "BGNSTR", Data: gotypeToBytes(s.BgnStr)})
-	records = append(records, Record{Size: uint16(4 + len([]byte(s.StrName))), Datatype: "STRNAME", Data: gotypeToBytes(s.StrName)})
-	for _, element := range s.Elements {
-		records = append(records, element.Records()...)
+func (s Structure) Records() ([]Record, error) {
+	records, err := fieldsToRecords(s)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for structure: %v", err)
 	}
-	records = append(records, Record{Size: 4, Datatype: "ENDSTR", Data: []byte{}})
-	return records
+	return wrapStartEnd("BGNSTR", records), nil
 }
 
 type Boundary struct {
@@ -305,8 +301,12 @@ func (b Boundary) GetData() any {
 func (b Boundary) String() string {
 	return fmt.Sprintf("Boundary - ElFlags: %v, Plex: %v, Layer: %v, Datatype: %v, XY: %v", b.ElFlags, b.Plex, b.Layer, b.Datatype, b.XY)
 }
-func (b Boundary) Records() []Record {
-	return wrapStartEnd("BOUNDARY", fieldsToRecords(b))
+func (b Boundary) Records() ([]Record, error) {
+	records, err := fieldsToRecords(b)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for boundary: %v", err)
+	}
+	return wrapStartEnd("BOUNDARY", records), nil
 }
 
 type Path struct {
@@ -326,8 +326,12 @@ func (p Path) String() string {
 	return fmt.Sprintf("Path - ElFlags: %v, Plex: %v, Layer: %v, Datatype: %v, Pathtype: %v, Width: %v, XY: %v",
 		p.ElFlags, p.Plex, p.Layer, p.Datatype, p.Pathtype, p.Width, p.XY)
 }
-func (p Path) Records() []Record {
-	return wrapStartEnd("PATH", fieldsToRecords(p))
+func (p Path) Records() ([]Record, error) {
+	records, err := fieldsToRecords(p)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for path: %v", err)
+	}
+	return wrapStartEnd("PATH", records), nil
 }
 
 type Text struct {
@@ -349,8 +353,12 @@ func (t Text) GetData() any {
 func (t Text) String() string {
 	return fmt.Sprintf("Text - ElFlags: %v, Plex: %v, Layer: %v, XY: %v", t.ElFlags, t.Plex, t.Layer, t.XY)
 }
-func (t Text) Records() []Record {
-	return wrapStartEnd("TEXT", fieldsToRecords(t))
+func (t Text) Records() ([]Record, error) {
+	records, err := fieldsToRecords(t)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for text: %v", err)
+	}
+	return wrapStartEnd("TEXT", records), err
 }
 
 type Node struct {
@@ -367,8 +375,12 @@ func (n Node) GetData() any {
 func (n Node) String() string {
 	return fmt.Sprintf("Node - ElFlags: %v, Plex: %v, Layer: %v, Nodetype: %v, XY: %v", n.ElFlags, n.Plex, n.Layer, n.Nodetype, n.XY)
 }
-func (n Node) Records() []Record {
-	return wrapStartEnd("NODE", fieldsToRecords(n))
+func (n Node) Records() ([]Record, error) {
+	records, err := fieldsToRecords(n)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for node: %v", err)
+	}
+	return wrapStartEnd("NODE", records), nil
 }
 
 type Box struct {
@@ -385,8 +397,12 @@ func (b Box) GetData() any {
 func (b Box) String() string {
 	return fmt.Sprintf("Box - ElFlags: %v, Plex: %v, Layer: %v, Boxtype: %v, XY: %v", b.ElFlags, b.Plex, b.Layer, b.Boxtype, b.XY)
 }
-func (b Box) Records() []Record {
-	return wrapStartEnd("BOX", fieldsToRecords(b))
+func (b Box) Records() ([]Record, error) {
+	records, err := fieldsToRecords(b)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for box: %v", err)
+	}
+	return wrapStartEnd("BOX", records), nil
 }
 
 type SRef struct {
@@ -406,8 +422,12 @@ func (s SRef) String() string {
 	return fmt.Sprintf("SRef - ElFlags: %v, Plex: %v, Sname: %v, Strans: %v, Mag: %v, Angle: %v, XY: %v",
 		s.ElFlags, s.Plex, s.Sname, s.Strans, s.Mag, s.Angle, s.XY)
 }
-func (s SRef) Records() []Record {
-	return wrapStartEnd("SREF", fieldsToRecords(s))
+func (s SRef) Records() ([]Record, error) {
+	records, err := fieldsToRecords(s)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for sref: %v", err)
+	}
+	return wrapStartEnd("SREF", records), nil
 }
 
 type ARef struct {
@@ -428,6 +448,10 @@ func (a ARef) String() string {
 	return fmt.Sprintf("ARef - ElFlags: %v, Plex: %v, Sname: %s, Strans: %v, Mag: %v, Angle: %v, Colrow: %v, XY: %v",
 		a.ElFlags, a.Plex, a.Sname, a.Strans, a.Mag, a.Angle, a.Colrow, a.XY)
 }
-func (a ARef) Records() []Record {
-	return wrapStartEnd("AREF", fieldsToRecords(a))
+func (a ARef) Records() ([]Record, error) {
+	records, err := fieldsToRecords(a)
+	if err != nil {
+		return []Record{}, fmt.Errorf("could not produce records for aref: %v", err)
+	}
+	return wrapStartEnd("AREF", records), nil
 }

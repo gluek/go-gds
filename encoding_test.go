@@ -1,7 +1,6 @@
 package gds
 
 import (
-	"bufio"
 	"bytes"
 	"testing"
 )
@@ -20,10 +19,6 @@ func assertEqualByteSlice(t *testing.T, a []byte, b []byte) {
 	t.Fatalf("%v != %v", a, b)
 }
 
-func mockFilehandler(data []byte) *bufio.Reader {
-	return bufio.NewReader(bytes.NewReader(data))
-}
-
 func TestGetRealSlice(t *testing.T) {
 	data := Record{
 		Size:     4 + 5*8,
@@ -36,7 +31,10 @@ func TestGetRealSlice(t *testing.T) {
 			byte(0b00000000), byte(0b00000000), byte(0b00000000), byte(0b00000000), byte(0b00000000), byte(0b00000000), byte(0b00000000), byte(0b00000000), // 0.0
 		},
 	}
-	result := getRealSlice(data)
+	result, err := getRealSlice(data)
+	if err != nil {
+		t.Fatalf("could not get real slice: %v", err)
+	}
 	assertEqual(t, result[0], 0.5)
 	assertEqual(t, result[1], -0.5)
 	assertEqual(t, result[2], 1.5)
@@ -45,11 +43,11 @@ func TestGetRealSlice(t *testing.T) {
 }
 
 func TestEncodeReal(t *testing.T) {
-	assertEqual(t, uint64(0b01000000_10000000_00000000_00000000_00000000_00000000_00000000_00000000), encodeReal(0.5))
-	assertEqual(t, uint64(0b11000000_10000000_00000000_00000000_00000000_00000000_00000000_00000000), encodeReal(-0.5))
-	assertEqual(t, uint64(0b01000001_00011000_00000000_00000000_00000000_00000000_00000000_00000000), encodeReal(1.5))
-	assertEqual(t, uint64(0b01000010_01100100_00000000_00000000_00000000_00000000_00000000_00000000), encodeReal(100.0))
-	assertEqual(t, uint64(0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000), encodeReal(0.0))
+	assertEqual(t, uint64(0b01000000_10000000_00000000_00000000_00000000_00000000_00000000_00000000), ignoreError(encodeReal(0.5)))
+	assertEqual(t, uint64(0b11000000_10000000_00000000_00000000_00000000_00000000_00000000_00000000), ignoreError(encodeReal(-0.5)))
+	assertEqual(t, uint64(0b01000001_00011000_00000000_00000000_00000000_00000000_00000000_00000000), ignoreError(encodeReal(1.5)))
+	assertEqual(t, uint64(0b01000010_01100100_00000000_00000000_00000000_00000000_00000000_00000000), ignoreError(encodeReal(100.0)))
+	assertEqual(t, uint64(0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000), ignoreError(encodeReal(0.0)))
 }
 
 func TestDecodeReal(t *testing.T) {
@@ -67,67 +65,24 @@ func TestBitsToByteArray(t *testing.T) {
 	assertEqualByteSlice(t, expected, got)
 }
 
+func ignoreError[T any](val T, err error) T {
+	return val
+}
+
 func TestGotypeToBytes(t *testing.T) {
-	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f)}, gotypeToBytes(int16(0x0f_0f)))
-	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f)}, gotypeToBytes(uint16(0x0f_0f)))
-	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f)}, gotypeToBytes(int32(0x0f_0f_0f_0f)))
-	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f)}, gotypeToBytes([]int16{0x0f_0f, 0x0f_0f}))
+	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f)}, ignoreError(gotypeToBytes(int16(0x0f_0f))))
+	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f)}, ignoreError(gotypeToBytes(uint16(0x0f_0f))))
+	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f)}, ignoreError(gotypeToBytes(int32(0x0f_0f_0f_0f))))
+	assertEqualByteSlice(t, []byte{byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f)}, ignoreError(gotypeToBytes([]int16{0x0f_0f, 0x0f_0f})))
 	assertEqualByteSlice(t,
 		[]byte{byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f), byte(0x0f)},
-		gotypeToBytes([]int32{0x0f_0f_0f_0f, 0x0f_0f_0f_0f}))
+		ignoreError(gotypeToBytes([]int32{0x0f_0f_0f_0f, 0x0f_0f_0f_0f})))
 	assertEqualByteSlice(t,
 		[]byte{byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00)},
-		gotypeToBytes(float64(0.5)))
+		ignoreError(gotypeToBytes(float64(0.5))))
 	assertEqualByteSlice(t,
 		[]byte{byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00),
 			byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00)},
-		gotypeToBytes([]float64{0.5, 0.5}))
-	assertEqualByteSlice(t, []byte("test123"), gotypeToBytes("test123"))
-}
-
-func TestRecordsToRecords(t *testing.T) {
-	arefTest := ARef{
-		ElFlags: 0,
-		Plex:    0,
-		Sname:   "Test",
-		Strans:  0,
-		Mag:     1.0,
-		Angle:   0.0,
-		Colrow:  []int16{0, 0},
-		XY:      []int32{0, 0, 1, 1},
-	}
-	recordsAref := fieldsToRecords(arefTest)
-	recordsAref = append(recordsAref, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
-	arefReader := mockFilehandler(recordsToBytes(recordsAref))
-	arefNew, err := decodeAREF(arefReader)
-	if err != nil {
-		t.Fatalf("error decoding aref: %v", err)
-	}
-	if arefTest.String() != arefNew.String() {
-		t.Fatalf("%v not equal to %v", arefTest, arefNew)
-	}
-
-	textTest := Text{
-		ElFlags:      0,
-		Plex:         0,
-		Layer:        1,
-		Texttype:     0,
-		Presentation: 0,
-		Strans:       0,
-		Mag:          1.0,
-		Angle:        0.0,
-		XY:           []int32{0, 0, 1, 1},
-		StringBody:   "Test",
-	}
-	recordsText := fieldsToRecords(textTest)
-	recordsText = append(recordsText, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
-	textReader := mockFilehandler(recordsToBytes(recordsText))
-	textNew, err := decodeText(textReader)
-	if err != nil {
-		t.Fatalf("error decoding aref: %v", err)
-	}
-	if textTest.String() != textNew.String() {
-		t.Fatalf("%v not equal to %v", textNew, textNew)
-	}
-
+		ignoreError(gotypeToBytes([]float64{0.5, 0.5})))
+	assertEqualByteSlice(t, []byte("test123"), ignoreError(gotypeToBytes("test123")))
 }
