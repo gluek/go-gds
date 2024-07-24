@@ -22,6 +22,22 @@ func TestReadGDS(t *testing.T) {
 	fmt.Print(library)
 }
 
+func TestLayers(t *testing.T) {
+	testFile := "klayout_test.gds"
+
+	fh, err := os.Open(testFile)
+	if err != nil {
+		t.Fatalf("could not open test gds file: %v", err)
+	}
+	defer fh.Close()
+
+	library, err := ReadGDS(fh)
+	if err != nil {
+		t.Fatalf("could not parse gds file: %v", err)
+	}
+	fmt.Print(library.GetLayers())
+}
+
 func TestReadRecords(t *testing.T) {
 	testFile := "klayout_test.gds"
 

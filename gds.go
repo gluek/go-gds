@@ -52,3 +52,26 @@ func WriteGDS(f *os.File, lib *Library) error {
 	writer.Flush()
 	return nil
 }
+
+func (l Library) GetLayers() map[string][]Element {
+	result := map[string][]Element{}
+	for _, structure := range l.Structures {
+		for _, element := range structure.Elements {
+			elementSlice, ok := result[element.GetLayer()]
+			if ok {
+				result[element.GetLayer()] = append(elementSlice, element)
+			} else {
+				result[element.GetLayer()] = []Element{element}
+			}
+		}
+	}
+	return result
+}
+
+func (l Library) GetStructures() map[string]Structure {
+	result := map[string]Structure{}
+	for _, structure := range l.Structures {
+		result[structure.StrName] = structure
+	}
+	return result
+}

@@ -231,6 +231,7 @@ type Element interface {
 	String() string
 	GetData() any
 	Records() ([]Record, error)
+	GetLayer() string
 }
 
 type Library struct {
@@ -308,6 +309,9 @@ func (b Boundary) Records() ([]Record, error) {
 	}
 	return wrapStartEnd("BOUNDARY", records), nil
 }
+func (b Boundary) GetLayer() string {
+	return fmt.Sprintf("%d/%d", b.Layer, b.Datatype)
+}
 
 type Path struct {
 	ElFlags  uint16
@@ -332,6 +336,9 @@ func (p Path) Records() ([]Record, error) {
 		return []Record{}, fmt.Errorf("could not produce records for path: %v", err)
 	}
 	return wrapStartEnd("PATH", records), nil
+}
+func (p Path) GetLayer() string {
+	return fmt.Sprintf("%d/%d", p.Layer, p.Datatype)
 }
 
 type Text struct {
@@ -360,6 +367,9 @@ func (t Text) Records() ([]Record, error) {
 	}
 	return wrapStartEnd("TEXT", records), err
 }
+func (t Text) GetLayer() string {
+	return fmt.Sprintf("%d/%d", t.Layer, t.Texttype)
+}
 
 type Node struct {
 	ElFlags  uint16
@@ -382,6 +392,9 @@ func (n Node) Records() ([]Record, error) {
 	}
 	return wrapStartEnd("NODE", records), nil
 }
+func (n Node) GetLayer() string {
+	return fmt.Sprintf("%d/%d", n.Layer, n.Nodetype)
+}
 
 type Box struct {
 	ElFlags uint16
@@ -403,6 +416,9 @@ func (b Box) Records() ([]Record, error) {
 		return []Record{}, fmt.Errorf("could not produce records for box: %v", err)
 	}
 	return wrapStartEnd("BOX", records), nil
+}
+func (b Box) GetLayer() string {
+	return fmt.Sprintf("%d/%d", b.Layer, b.Boxtype)
 }
 
 type SRef struct {
@@ -429,6 +445,9 @@ func (s SRef) Records() ([]Record, error) {
 	}
 	return wrapStartEnd("SREF", records), nil
 }
+func (s SRef) GetLayer() string {
+	return fmt.Sprintf("cellref")
+}
 
 type ARef struct {
 	ElFlags uint16
@@ -454,4 +473,7 @@ func (a ARef) Records() ([]Record, error) {
 		return []Record{}, fmt.Errorf("could not produce records for aref: %v", err)
 	}
 	return wrapStartEnd("AREF", records), nil
+}
+func (a ARef) GetLayer() string {
+	return fmt.Sprintf("cellref")
 }
