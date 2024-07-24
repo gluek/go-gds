@@ -351,7 +351,7 @@ func (t Text) GetData() any {
 	return t.StringBody
 }
 func (t Text) String() string {
-	return fmt.Sprintf("Text - ElFlags: %v, Plex: %v, Layer: %v, XY: %v", t.ElFlags, t.Plex, t.Layer, t.XY)
+	return fmt.Sprintf("Text - ElFlags: %v, Plex: %v, Layer: %v, XY: %v, String: %v", t.ElFlags, t.Plex, t.Layer, t.XY, t.StringBody)
 }
 func (t Text) Records() ([]Record, error) {
 	records, err := fieldsToRecords(t)

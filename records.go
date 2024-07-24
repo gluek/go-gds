@@ -11,13 +11,13 @@ import (
 // Wraps a record slice with their start record "{ELEMENTTYPE}" and end record "ENDEL"
 func wrapStartEnd(elementType string, records []Record) []Record {
 	wrappedRecords := []Record{}
-	wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: elementType, Data: []byte{}})
-	wrappedRecords = append(wrappedRecords, records...)
 	if elementType == "BGNSTR" {
-		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: "ENDSTR", Data: []byte{}})
+		return append(records, Record{Size: 4, Datatype: "ENDSTR", Data: []byte{}})
 	} else if elementType == "BGNLIB" {
-		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: "ENDLIB", Data: []byte{}})
+		return append(records, Record{Size: 4, Datatype: "ENDLIB", Data: []byte{}})
 	} else {
+		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: elementType, Data: []byte{}})
+		wrappedRecords = append(wrappedRecords, records...)
 		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
 	}
 	return wrappedRecords
@@ -82,31 +82,31 @@ OuterLoop:
 		case "ELFLAGS":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode boundary/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Boundary/%s: %v", newRecord.Datatype, err)
 			}
 			boundary.ElFlags = data.(uint16)
 		case "PLEX":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode boundary/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Boundary/%s: %v", newRecord.Datatype, err)
 			}
 			boundary.Plex = data.(int32)
 		case "LAYER":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode boundary/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Boundary/%s: %v", newRecord.Datatype, err)
 			}
 			boundary.Layer = data.(int16)
 		case "DATATYPE":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode boundary/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Boundary/%s: %v", newRecord.Datatype, err)
 			}
 			boundary.Datatype = data.(int16)
 		case "XY":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode boundary/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Boundary/%s: %v", newRecord.Datatype, err)
 			}
 			boundary.XY = data.([]int32)
 		}
@@ -136,45 +136,47 @@ OuterLoop:
 		case "ELFLAGS":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode path/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.ElFlags = data.(uint16)
 		case "PLEX":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode path/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.Plex = data.(int32)
 		case "LAYER":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode path/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.Layer = data.(int16)
 		case "DATATYPE":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode path/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.Datatype = data.(int16)
 		case "PATHTYPE":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode path/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.Pathtype = data.(int16)
 		case "WIDTH":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode path/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.Width = data.(int32)
 		case "XY":
 			data, err := newRecord.GetData()
 			if err != nil {
-				return nil, fmt.Errorf("could not decode path/%s: %v", newRecord.Datatype, err)
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.XY = data.([]int32)
+		default:
+			return nil, fmt.Errorf("could not decode Path/%s: unkown datatype", newRecord.Datatype)
 		}
 	}
 	return &path, nil
@@ -241,6 +243,8 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Sref/%s: %v", newRecord.Datatype, err)
 			}
 			sref.XY = data.([]int32)
+		default:
+			return nil, fmt.Errorf("could not decode Sref/%s: unkown datatype", newRecord.Datatype)
 		}
 	}
 	return &sref, nil
@@ -314,6 +318,8 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Aref/%s: %v", newRecord.Datatype, err)
 			}
 			aref.XY = data.([]int32)
+		default:
+			return nil, fmt.Errorf("could not decode Aref/%s: unkown datatype", newRecord.Datatype)
 		}
 	}
 	return &aref, nil
@@ -389,7 +395,7 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Text/%s: %v", newRecord.Datatype, err)
 			}
 			text.Angle = data.(float64)
-		case "STRING":
+		case "STRINGBODY":
 			data, err := newRecord.GetData()
 			if err != nil {
 				return nil, fmt.Errorf("could not decode Text/%s: %v", newRecord.Datatype, err)
@@ -401,6 +407,8 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Text/%s: %v", newRecord.Datatype, err)
 			}
 			text.XY = data.([]int32)
+		default:
+			return nil, fmt.Errorf("could not decode Text/%s: unkown datatype", newRecord.Datatype)
 		}
 	}
 	return &text, nil
@@ -453,6 +461,8 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Node/%s: %v", newRecord.Datatype, err)
 			}
 			node.XY = data.([]int32)
+		default:
+			return nil, fmt.Errorf("could not decode Node/%s: unkown datatype", newRecord.Datatype)
 		}
 	}
 	return &node, nil
@@ -505,6 +515,8 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Box/%s: %v", newRecord.Datatype, err)
 			}
 			box.XY = data.([]int32)
+		default:
+			return nil, fmt.Errorf("could not decode Box/%s: unkown datatype", newRecord.Datatype)
 		}
 	}
 	return &box, nil
@@ -529,6 +541,8 @@ OuterLoop:
 		switch newRecord.Datatype {
 		case "ENDSTR":
 			break OuterLoop
+		case "BGNSTR":
+			continue //should not happen outside of tests
 		case "STRNAME":
 			data, err := newRecord.GetData()
 			if err != nil {
@@ -577,6 +591,8 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Structure/%s: %v", newRecord.Datatype, err)
 			}
 			structure.Elements = append(structure.Elements, element)
+		default:
+			return nil, fmt.Errorf("could not decode Structure/%s: unkown datatype", newRecord.Datatype)
 		}
 	}
 	return &structure, nil
@@ -629,6 +645,8 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Library/%s: %v", newRecord.Datatype, err)
 			}
 			library.Structures = append(library.Structures, *element)
+		default:
+			return nil, fmt.Errorf("could not decode Library/%s: unkown datatype", newRecord.Datatype)
 		}
 	}
 	return &library, nil

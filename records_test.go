@@ -37,6 +37,7 @@ var (
 			XY:      []int32{6, 7, 8, 9},
 		},
 	}
+	BrokenRecord = []Record{{Size: 4, Datatype: "BROKEN", Data: []byte{}}}
 )
 
 func mockFilehandler(data []byte) *bufio.Reader {
@@ -79,10 +80,14 @@ func TestText(t *testing.T) {
 	recordsText = append(recordsText, ENDEL)
 	textNew, err := decodeText(mockFilehandler(recordsToBytes(recordsText)))
 	if err != nil {
-		t.Fatalf("error decoding aref: %v", err)
+		t.Fatalf("error decoding text %v", err)
 	}
 	if textTest.String() != textNew.String() {
 		t.Fatalf("%v not equal to %v", textNew, textNew)
+	}
+	_, err = decodeText(mockFilehandler(recordsToBytes(BrokenRecord)))
+	if err == nil {
+		t.Fatalf("could parse broken record")
 	}
 }
 
@@ -105,6 +110,10 @@ func TestBoundary(t *testing.T) {
 	}
 	if boundaryTest.String() != boundaryNew.String() {
 		t.Fatalf("%v not equal to %v", boundaryTest, boundaryNew)
+	}
+	_, err = decodeBoundary(mockFilehandler(recordsToBytes(BrokenRecord)))
+	if err == nil {
+		t.Fatalf("could parse broken record")
 	}
 }
 
@@ -130,6 +139,10 @@ func TestPath(t *testing.T) {
 	if pathTest.String() != pathNew.String() {
 		t.Fatalf("%v not equal to %v", pathTest, pathNew)
 	}
+	_, err = decodePath(mockFilehandler(recordsToBytes(BrokenRecord)))
+	if err == nil {
+		t.Fatalf("could parse broken record")
+	}
 }
 
 func TestSref(t *testing.T) {
@@ -153,6 +166,10 @@ func TestSref(t *testing.T) {
 	}
 	if srefTest.String() != srefNew.String() {
 		t.Fatalf("%v not equal to %v", srefTest, srefNew)
+	}
+	_, err = decodeSREF(mockFilehandler(recordsToBytes(BrokenRecord)))
+	if err == nil {
+		t.Fatalf("could parse broken record")
 	}
 }
 
@@ -179,6 +196,10 @@ func TestAref(t *testing.T) {
 	if arefTest.String() != arefNew.String() {
 		t.Fatalf("%v not equal to %v", arefTest, arefNew)
 	}
+	_, err = decodeAREF(mockFilehandler(recordsToBytes(BrokenRecord)))
+	if err == nil {
+		t.Fatalf("could parse broken record")
+	}
 }
 
 func TestNode(t *testing.T) {
@@ -201,6 +222,10 @@ func TestNode(t *testing.T) {
 	if nodeTest.String() != nodeNew.String() {
 		t.Fatalf("%v not equal to %v", nodeTest, nodeNew)
 	}
+	_, err = decodeNode(mockFilehandler(recordsToBytes(BrokenRecord)))
+	if err == nil {
+		t.Fatalf("could parse broken record")
+	}
 }
 
 func TextBox(t *testing.T) {
@@ -222,6 +247,10 @@ func TextBox(t *testing.T) {
 	}
 	if boxTest.String() != boxNew.String() {
 		t.Fatalf("%v not equal to %v", boxTest, boxNew)
+	}
+	_, err = decodeBox(mockFilehandler(recordsToBytes(BrokenRecord)))
+	if err == nil {
+		t.Fatalf("could parse broken record")
 	}
 }
 
@@ -271,5 +300,9 @@ func TestLibrary(t *testing.T) {
 	}
 	if libraryTest.String() != libraryNew.String() {
 		t.Fatalf("%v not equal to %v", libraryTest, libraryNew)
+	}
+	_, err = decodeLibrary(mockFilehandler(recordsToBytes(BrokenRecord)))
+	if err == nil {
+		t.Fatalf("could parse broken record")
 	}
 }

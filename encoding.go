@@ -30,7 +30,6 @@ func fieldsToRecords(data any) ([]Record, error) {
 				}
 				records = append(records, newRecords...)
 			}
-			records = append(records, Record{Size: 4, Datatype: "ENDSTR", Data: []byte{}})
 		} else {
 			data, err := gotypeToBytes(v.Field(i).Interface())
 			if err != nil {

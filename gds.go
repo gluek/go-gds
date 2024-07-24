@@ -20,6 +20,23 @@ func ReadGDS(f *os.File) (*Library, error) {
 	return library, nil
 }
 
+func ReadRecords(f *os.File) ([]Record, error) {
+	records := []Record{}
+	reader := bufio.NewReader(f)
+OuterLoop:
+	for {
+		record, err := decodeRecord(reader)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, *record)
+		if record.Datatype == "ENDLIB" {
+			break OuterLoop
+		}
+	}
+	return records, nil
+}
+
 func WriteGDS(f *os.File, lib *Library) error {
 	writer := bufio.NewWriter(f)
 	records, err := lib.Records()
