@@ -2,25 +2,77 @@ package gds
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
+	"reflect"
 )
 
-// Wraps a record slice with their start record "{ELEMENTTYPE}" and end record "ENDEL"
-func wrapStartEnd(elementType string, records []Record) []Record {
-	wrappedRecords := []Record{}
-	if elementType == "BGNSTR" {
-		return append(records, Record{Size: 4, Datatype: "ENDSTR", Data: []byte{}})
-	} else if elementType == "BGNLIB" {
-		return append(records, Record{Size: 4, Datatype: "ENDLIB", Data: []byte{}})
-	} else {
-		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: elementType, Data: []byte{}})
-		wrappedRecords = append(wrappedRecords, records...)
-		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
+// Convert bits which represents 8-byte real with 1-bit sign, 7-bit exponent and 56-bit mantissa to IEEE754 float64
+func decodeReal(bits uint64) float64 {
+	sign := 1.0
+	if uint64(bits&0x80_00_00_00_00_00_00_00) > 0 {
+		sign = -1.0
 	}
-	return wrappedRecords
+	exponent := int8(bits >> 56)
+	rangingFactor := float64(uint64(0b00000001_00000000_00000000_00000000_00000000_00000000_00000000_00000000))
+	mantissa := float64(bits&0x00_ff_ff_ff_ff_ff_ff_ff) / rangingFactor
+	return sign * mantissa * math.Pow(16, math.Abs(float64(exponent))-64)
+}
+
+func getRealSlice(data Record) ([]float64, error) {
+	initSlice := make([]uint64, int((data.Size-HEADERSIZE)/8))
+	finalSlice := make([]float64, len(initSlice))
+
+	reader := bytes.NewReader(data.Data)
+	err := binary.Read(reader, binary.BigEndian, &initSlice)
+	if err != nil {
+		return finalSlice, fmt.Errorf("could not read binary data: %v", err)
+	}
+	for i, number := range initSlice {
+		finalSlice[i] = decodeReal(number)
+	}
+	return finalSlice, nil
+}
+
+func getDataSlice[T any](data Record) ([]T, error) {
+	var typeInit T
+	typeSize := reflect.TypeOf(typeInit).Size()
+	result := make([]T, int((data.Size-HEADERSIZE)/uint16(typeSize)))
+	reader := bytes.NewReader(data.Data)
+	err := binary.Read(reader, binary.BigEndian, &result)
+	if err != nil {
+		return result, fmt.Errorf("could not read binary data: %v", err)
+	}
+	return result, nil
+}
+
+func getRealPoint(data Record) (float64, error) {
+	var number uint64
+
+	reader := bytes.NewReader(data.Data)
+	err := binary.Read(reader, binary.BigEndian, &number)
+	if err != nil {
+		return float64(0), fmt.Errorf("could not read binary data: %v", err)
+	}
+	return decodeReal(number), nil
+}
+
+func getDataPoint[T any](data Record) (T, error) {
+	var result T
+	reader := bytes.NewReader(data.Data)
+	err := binary.Read(reader, binary.BigEndian, &result)
+	if err != nil {
+		return result, fmt.Errorf("could not read binary data. RecordType: %s, %v", data.Datatype, err)
+	}
+	return result, nil
+}
+
+func getDataString(data Record) (string, error) {
+	return string(data.Data), nil
 }
 
 func decodeRecord(reader *bufio.Reader) (*Record, error) {
@@ -604,7 +656,7 @@ func decodeLibrary(reader *bufio.Reader) (*Library, error) {
 		BgnLib:     []int16{},
 		LibName:    "Unknown",
 		Units:      []float64{},
-		Structures: []Structure{},
+		Structures: map[string]*Structure{},
 	}
 OuterLoop:
 	for {
@@ -644,7 +696,7 @@ OuterLoop:
 			if err != nil {
 				return nil, fmt.Errorf("could not decode Library/%s: %v", newRecord.Datatype, err)
 			}
-			library.Structures = append(library.Structures, *element)
+			library.Structures[element.StrName] = element
 		default:
 			return nil, fmt.Errorf("could not decode Library/%s: unkown datatype", newRecord.Datatype)
 		}

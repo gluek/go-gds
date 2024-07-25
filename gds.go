@@ -53,25 +53,19 @@ func WriteGDS(f *os.File, lib *Library) error {
 	return nil
 }
 
-func (l Library) GetLayers() map[string][]Element {
-	result := map[string][]Element{}
+func (l Library) GetLayermapPolygons() map[string]*PolygonLayer {
+	result := map[string]*PolygonLayer{}
 	for _, structure := range l.Structures {
 		for _, element := range structure.Elements {
-			elementSlice, ok := result[element.GetLayer()]
-			if ok {
-				result[element.GetLayer()] = append(elementSlice, element)
-			} else {
-				result[element.GetLayer()] = []Element{element}
+			if element.Type() == PolygonType {
+				layer, ok := result[element.GetLayer()]
+				if ok {
+					layer.appendPolygon(element.(Polygon).GetPoints())
+				} else {
+					result[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{element.(Polygon).GetPoints()}}
+				}
 			}
 		}
-	}
-	return result
-}
-
-func (l Library) GetStructures() map[string]Structure {
-	result := map[string]Structure{}
-	for _, structure := range l.Structures {
-		result[structure.StrName] = structure
 	}
 	return result
 }

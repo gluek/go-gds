@@ -108,6 +108,17 @@ var RecordTypesBytes map[string][]byte = map[string][]byte{
 	"ENDMASKS":     {0x38, 0x00}, // end of MASK
 }
 
+type ElementType int
+
+const (
+	PolygonType ElementType = iota
+	PathType
+	LabelType
+	SRefType
+	ARefType
+	UnsupportedType
+)
+
 const HEADERSIZE = 4
 
 type Record struct {
@@ -232,6 +243,7 @@ type Element interface {
 	GetData() any
 	Records() ([]Record, error)
 	GetLayer() string
+	Type() ElementType
 }
 
 type Library struct {
@@ -239,13 +251,13 @@ type Library struct {
 	BgnLib     []int16
 	LibName    string
 	Units      []float64
-	Structures []Structure
+	Structures map[string]*Structure
 }
 
 func (l Library) String() string {
 	structureInfo := "\n"
 	for _, structure := range l.Structures {
-		structureInfo += "      " + structure.String() + "\n"
+		structureInfo += "      " + structure.StrName + "\n"
 		structureElements := structure.ListElements()
 		structureInfo += structureElements
 	}
@@ -270,7 +282,7 @@ type Structure struct {
 }
 
 func (s Structure) String() string {
-	return s.StrName
+	return fmt.Sprintf("%s, %v", s.StrName, s.Elements)
 }
 
 func (s Structure) ListElements() string {
@@ -312,6 +324,12 @@ func (b Boundary) Records() ([]Record, error) {
 func (b Boundary) GetLayer() string {
 	return fmt.Sprintf("%d/%d", b.Layer, b.Datatype)
 }
+func (b Boundary) Type() ElementType {
+	return PolygonType
+}
+func (b Boundary) GetPoints() []int32 {
+	return b.XY
+}
 
 type Path struct {
 	ElFlags  uint16
@@ -339,6 +357,9 @@ func (p Path) Records() ([]Record, error) {
 }
 func (p Path) GetLayer() string {
 	return fmt.Sprintf("%d/%d", p.Layer, p.Datatype)
+}
+func (p Path) Type() ElementType {
+	return PathType
 }
 
 type Text struct {
@@ -370,6 +391,9 @@ func (t Text) Records() ([]Record, error) {
 func (t Text) GetLayer() string {
 	return fmt.Sprintf("%d/%d", t.Layer, t.Texttype)
 }
+func (t Text) Type() ElementType {
+	return LabelType
+}
 
 type Node struct {
 	ElFlags  uint16
@@ -394,6 +418,9 @@ func (n Node) Records() ([]Record, error) {
 }
 func (n Node) GetLayer() string {
 	return fmt.Sprintf("%d/%d", n.Layer, n.Nodetype)
+}
+func (n Node) Type() ElementType {
+	return UnsupportedType
 }
 
 type Box struct {
@@ -420,12 +447,18 @@ func (b Box) Records() ([]Record, error) {
 func (b Box) GetLayer() string {
 	return fmt.Sprintf("%d/%d", b.Layer, b.Boxtype)
 }
+func (b Box) Type() ElementType {
+	return PolygonType
+}
+func (b Box) GetPoints() []int32 {
+	return b.XY
+}
 
 type SRef struct {
 	ElFlags uint16
 	Plex    int32
 	Sname   string
-	Strans  uint16
+	Strans  uint16 // Strans flags do nothing yet
 	Mag     float64
 	Angle   float64
 	XY      []int32
@@ -446,14 +479,17 @@ func (s SRef) Records() ([]Record, error) {
 	return wrapStartEnd("SREF", records), nil
 }
 func (s SRef) GetLayer() string {
-	return fmt.Sprintf("cellref")
+	return "cellref"
+}
+func (s SRef) Type() ElementType {
+	return SRefType
 }
 
 type ARef struct {
 	ElFlags uint16
 	Plex    int32
 	Sname   string
-	Strans  uint16
+	Strans  uint16 // Strans flags do nothing yet
 	Mag     float64
 	Angle   float64
 	Colrow  []int16
@@ -475,5 +511,8 @@ func (a ARef) Records() ([]Record, error) {
 	return wrapStartEnd("AREF", records), nil
 }
 func (a ARef) GetLayer() string {
-	return fmt.Sprintf("cellref")
+	return "cellref"
+}
+func (a ARef) Type() ElementType {
+	return ARefType
 }

@@ -22,7 +22,7 @@ func TestReadGDS(t *testing.T) {
 	fmt.Print(library)
 }
 
-func TestLayers(t *testing.T) {
+func TestGetLayerPolygons(t *testing.T) {
 	testFile := "klayout_test.gds"
 
 	fh, err := os.Open(testFile)
@@ -35,7 +35,7 @@ func TestLayers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
-	fmt.Print(library.GetLayers())
+	fmt.Print(library.GetLayermapPolygons())
 }
 
 func TestReadRecords(t *testing.T) {

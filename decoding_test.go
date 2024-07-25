@@ -281,8 +281,8 @@ func TestLibrary(t *testing.T) {
 		BgnLib:  []int16{2, 3},
 		LibName: "TestLibrary",
 		Units:   []float64{4.0, 5.0},
-		Structures: []Structure{
-			{
+		Structures: map[string]*Structure{
+			"Test": {
 				BgnStr:   []int16{1, 2},
 				StrName:  "TestStructure",
 				Elements: TestElements,

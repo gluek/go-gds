@@ -1,8 +1,6 @@
 package gds
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"reflect"
@@ -23,7 +21,7 @@ func fieldsToRecords(data any) ([]Record, error) {
 				records = append(records, newRecords...)
 			}
 		} else if v.Type().Field(i).Name == "Structures" {
-			for _, structure := range v.Field(i).Interface().([]Structure) {
+			for _, structure := range v.Field(i).Interface().(map[string]*Structure) {
 				newRecords, err := structure.Records()
 				if err != nil {
 					return []Record{}, err
@@ -126,18 +124,6 @@ func bitsToByteArray(i uint64) []byte {
 	}
 }
 
-// Convert bits which represents 8-byte real with 1-bit sign, 7-bit exponent and 56-bit mantissa to IEEE754 float64
-func decodeReal(bits uint64) float64 {
-	sign := 1.0
-	if uint64(bits&0x80_00_00_00_00_00_00_00) > 0 {
-		sign = -1.0
-	}
-	exponent := int8(bits >> 56)
-	rangingFactor := float64(uint64(0b00000001_00000000_00000000_00000000_00000000_00000000_00000000_00000000))
-	mantissa := float64(bits&0x00_ff_ff_ff_ff_ff_ff_ff) / rangingFactor
-	return sign * mantissa * math.Pow(16, math.Abs(float64(exponent))-64)
-}
-
 // Convert IEEE754 float64 to 8-byte real with 1-bit sign, 7-bit exponent and 56-bit mantissa
 func encodeReal(fl float64) (uint64, error) {
 	if fl == 0.0 {
@@ -168,56 +154,4 @@ func encodeReal(fl float64) (uint64, error) {
 	}
 	newExpUint := uint64(newExp + 64)
 	return uint64(sign | (factor >> 8) | (newExpUint << 56)), nil
-}
-
-func getRealSlice(data Record) ([]float64, error) {
-	initSlice := make([]uint64, int((data.Size-HEADERSIZE)/8))
-	finalSlice := make([]float64, len(initSlice))
-
-	reader := bytes.NewReader(data.Data)
-	err := binary.Read(reader, binary.BigEndian, &initSlice)
-	if err != nil {
-		return finalSlice, fmt.Errorf("could not read binary data: %v", err)
-	}
-	for i, number := range initSlice {
-		finalSlice[i] = decodeReal(number)
-	}
-	return finalSlice, nil
-}
-
-func getDataSlice[T any](data Record) ([]T, error) {
-	var typeInit T
-	typeSize := reflect.TypeOf(typeInit).Size()
-	result := make([]T, int((data.Size-HEADERSIZE)/uint16(typeSize)))
-	reader := bytes.NewReader(data.Data)
-	err := binary.Read(reader, binary.BigEndian, &result)
-	if err != nil {
-		return result, fmt.Errorf("could not read binary data: %v", err)
-	}
-	return result, nil
-}
-
-func getRealPoint(data Record) (float64, error) {
-	var number uint64
-
-	reader := bytes.NewReader(data.Data)
-	err := binary.Read(reader, binary.BigEndian, &number)
-	if err != nil {
-		return float64(0), fmt.Errorf("could not read binary data: %v", err)
-	}
-	return decodeReal(number), nil
-}
-
-func getDataPoint[T any](data Record) (T, error) {
-	var result T
-	reader := bytes.NewReader(data.Data)
-	err := binary.Read(reader, binary.BigEndian, &result)
-	if err != nil {
-		return result, fmt.Errorf("could not read binary data. RecordType: %s, %v", data.Datatype, err)
-	}
-	return result, nil
-}
-
-func getDataString(data Record) (string, error) {
-	return string(data.Data), nil
 }
