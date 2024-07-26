@@ -31,6 +31,30 @@ func resolveSRefPolygons(lib *Library, layermap map[string]*PolygonLayer, ref *S
 	}
 }
 
+func resolveARefPolygons(lib *Library, layermap map[string]*PolygonLayer, ref *ARef) {
+	nCol := ref.Colrow[0]
+	nRow := ref.Colrow[1]
+
+	refPoint := ref.XY[:2]
+	// mulColSpacing := ref.XY[2:4]
+	// mulRowSpacing := ref.XY[4:]
+	for i := range nCol {
+		for j := range nRow {
+			for _, element := range lib.Structures[ref.Sname].Elements {
+				if element.Type() == PolygonType {
+					points := transformPoints(element.(Polygon).GetPoints(), refPoint[0]*int32(i), refPoint[1]*int32(j), ref.Strans, ref.Mag, ref.Angle)
+					layer, ok := layermap[element.GetLayer()]
+					if ok {
+						layer.appendPolygon(points)
+					} else {
+						layermap[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{points}}
+					}
+				}
+			}
+		}
+	}
+}
+
 func transformPoints(array []int32, xshift int32, yshift int32, strans uint16, mag float64, angle float64) []int32 {
 	radians := angle * math.Pi / 180
 	transformedArray := make([]int32, len(array))

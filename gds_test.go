@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	svg "github.com/ajstarks/svgo"
 )
 
 func TestReadGDS(t *testing.T) {
@@ -36,6 +38,46 @@ func TestGetLayerPolygons(t *testing.T) {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
 	fmt.Print(library.GetLayermapPolygons())
+}
+
+func TestDrawPolygons(t *testing.T) {
+	testFile := "klayout_test.gds"
+
+	fh, err := os.Open(testFile)
+	if err != nil {
+		t.Fatalf("could not open test gds file: %v", err)
+	}
+	defer fh.Close()
+
+	library, err := ReadGDS(fh)
+	if err != nil {
+		t.Fatalf("could not parse gds file: %v", err)
+	}
+
+	layermap := library.GetLayermapPolygons()
+
+	fhSVG, err := os.Create("test.svg")
+	if err != nil {
+		t.Fatalf("could not generate svg")
+	}
+	colormap := []string{"black", "blue", "red", "yellow", "cyan", "magenta", "purple", "green", "orange"}
+	width := 1000
+	height := 1000
+	canvas := svg.New(fhSVG)
+	canvas.Start(width, height)
+	j := 0
+	for _, v := range layermap {
+		for _, poly := range v.Polygons {
+			var x, y []int
+			for i := 0; i < len(poly); i += 2 {
+				x = append(x, int(poly[i]/100))
+				y = append(y, int(poly[i+1]/100))
+			}
+			canvas.Polygon(x, y, fmt.Sprintf("fill:none;stroke:%s", colormap[j]))
+		}
+		j++
+	}
+	canvas.End()
 }
 
 func TestReadRecords(t *testing.T) {

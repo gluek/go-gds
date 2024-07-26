@@ -44,6 +44,7 @@ func fieldsToRecords(data any) ([]Record, error) {
 	return records, nil
 }
 
+// only used for testing
 func recordsToBytes(records []Record) []byte {
 	var result []byte
 	for _, rec := range records {
