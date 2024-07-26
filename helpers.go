@@ -17,20 +17,18 @@ func wrapStartEnd(elementType string, records []Record) []Record {
 	return wrappedRecords
 }
 
-func resolveSRefPolygons(lib *Library, ref SRef) map[string][][]int32 {
-	result := map[string][][]int32{}
+func resolveSRefPolygons(lib *Library, layermap map[string]*PolygonLayer, ref *SRef) {
 	for _, element := range lib.Structures[ref.Sname].Elements {
 		if element.Type() == PolygonType {
 			points := transformPoints(element.(Polygon).GetPoints(), ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)
-			_, ok := result[element.GetLayer()]
+			layer, ok := layermap[element.GetLayer()]
 			if ok {
-				result[element.GetLayer()] = append(result[element.GetLayer()], points)
+				layer.appendPolygon(points)
 			} else {
-				result[element.GetLayer()] = [][]int32{points}
+				layermap[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{points}}
 			}
 		}
 	}
-	return result
 }
 
 func transformPoints(array []int32, xshift int32, yshift int32, strans uint16, mag float64, angle float64) []int32 {

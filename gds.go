@@ -64,6 +64,8 @@ func (l Library) GetLayermapPolygons() map[string]*PolygonLayer {
 				} else {
 					result[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{element.(Polygon).GetPoints()}}
 				}
+			} else if element.Type() == SRefType {
+				resolveSRefPolygons(&l, result, element.(*SRef))
 			}
 		}
 	}
