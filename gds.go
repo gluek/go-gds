@@ -53,21 +53,25 @@ func WriteGDS(f *os.File, lib *Library) error {
 	return nil
 }
 
-func (l Library) GetLayermapPolygons() map[string]*PolygonLayer {
+func (l Library) GetLayermapPolygons(cell string) (map[string]*PolygonLayer, error) {
 	result := map[string]*PolygonLayer{}
-	for _, structure := range l.Structures {
-		for _, element := range structure.Elements {
-			if element.Type() == PolygonType {
-				layer, ok := result[element.GetLayer()]
-				if ok {
-					layer.appendPolygon(element.(Polygon).GetPoints())
-				} else {
-					result[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{element.(Polygon).GetPoints()}}
-				}
-			} else if element.Type() == SRefType {
-				resolveSRefPolygons(&l, result, element.(*SRef))
+	structure, ok := l.Structures[cell]
+	if !ok {
+		return map[string]*PolygonLayer{}, fmt.Errorf("cell with name %s does not exist", cell)
+	}
+	for _, element := range structure.Elements {
+		if element.Type() == PolygonType {
+			layer, ok := result[element.GetLayer()]
+			if ok {
+				layer.appendPolygon(element.(Polygon).GetPoints())
+			} else {
+				result[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{element.(Polygon).GetPoints()}}
 			}
+		} else if element.Type() == SRefType {
+			resolveSRefPolygons(&l, result, element.(*SRef))
+		} else if element.Type() == ARefType {
+			resolveARefPolygons(&l, result, element.(*ARef))
 		}
 	}
-	return result
+	return result, nil
 }

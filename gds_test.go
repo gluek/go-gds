@@ -9,7 +9,7 @@ import (
 )
 
 func TestReadGDS(t *testing.T) {
-	testFile := "klayout_test.gds"
+	testFile := "klayout_test_aref.gds"
 
 	fh, err := os.Open(testFile)
 	if err != nil {
@@ -25,7 +25,7 @@ func TestReadGDS(t *testing.T) {
 }
 
 func TestGetLayerPolygons(t *testing.T) {
-	testFile := "klayout_test.gds"
+	testFile := "klayout_test_aref.gds"
 
 	fh, err := os.Open(testFile)
 	if err != nil {
@@ -37,11 +37,15 @@ func TestGetLayerPolygons(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
-	fmt.Print(library.GetLayermapPolygons())
+	polygons, err := library.GetLayermapPolygons("top")
+	if err != nil {
+		t.Fatalf("could not get layermap polygons: %v", err)
+	}
+	fmt.Print(polygons)
 }
 
 func TestDrawPolygons(t *testing.T) {
-	testFile := "klayout_test.gds"
+	testFile := "klayout_test_aref.gds"
 
 	fh, err := os.Open(testFile)
 	if err != nil {
@@ -54,15 +58,18 @@ func TestDrawPolygons(t *testing.T) {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
 
-	layermap := library.GetLayermapPolygons()
+	layermap, err := library.GetLayermapPolygons("top")
+	if err != nil {
+		t.Fatalf("could not get layermap polygons: %v", err)
+	}
 
 	fhSVG, err := os.Create("test.svg")
 	if err != nil {
 		t.Fatalf("could not generate svg")
 	}
 	colormap := []string{"black", "blue", "red", "yellow", "cyan", "magenta", "purple", "green", "orange"}
-	width := 1000
-	height := 1000
+	width := 25000
+	height := 25000
 	canvas := svg.New(fhSVG)
 	canvas.Start(width, height)
 	j := 0
@@ -70,10 +77,10 @@ func TestDrawPolygons(t *testing.T) {
 		for _, poly := range v.Polygons {
 			var x, y []int
 			for i := 0; i < len(poly); i += 2 {
-				x = append(x, int(poly[i]/100))
-				y = append(y, int(poly[i+1]/100))
+				x = append(x, int(poly[i]))
+				y = append(y, int(poly[i+1]))
 			}
-			canvas.Polygon(x, y, fmt.Sprintf("fill:none;stroke:%s", colormap[j]))
+			canvas.Polygon(x, y, fmt.Sprintf("stroke-width:0.5%%;fill:none;stroke:%s", colormap[j]))
 		}
 		j++
 	}

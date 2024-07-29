@@ -84,5 +84,8 @@ func TestGotypeToBytes(t *testing.T) {
 		[]byte{byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00),
 			byte(0x40), byte(0x80), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00), byte(0x00)},
 		ignoreError(gotypeToBytes([]float64{0.5, 0.5})))
-	assertEqualByteSlice(t, []byte("test123"), ignoreError(gotypeToBytes("test123")))
+	// length always must be even, therefore 7 char strings are padded with a 0-byte
+	testString := []byte("test123")
+	testString = append(testString, byte(0))
+	assertEqualByteSlice(t, testString, ignoreError(gotypeToBytes("test123")))
 }

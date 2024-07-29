@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"reflect"
+	"strings"
 )
 
 // Convert bits which represents 8-byte real with 1-bit sign, 7-bit exponent and 56-bit mantissa to IEEE754 float64
@@ -72,7 +73,7 @@ func getDataPoint[T any](data Record) (T, error) {
 }
 
 func getDataString(data Record) (string, error) {
-	return string(data.Data), nil
+	return strings.TrimRight(string(data.Data), string(byte(0))), nil
 }
 
 func decodeRecord(reader *bufio.Reader) (*Record, error) {

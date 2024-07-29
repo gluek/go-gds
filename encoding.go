@@ -70,7 +70,11 @@ func gotypeToBytes(value any) ([]byte, error) {
 		encodedValue, err := encodeReal(value.(float64))
 		return bitsToByteArray(encodedValue), err
 	case reflect.TypeOf(""):
-		return []byte(value.(string)), nil
+		bytes := []byte(value.(string))
+		if len(bytes)%2 == 1 {
+			bytes = append(bytes, byte(0))
+		}
+		return bytes, nil
 	case reflect.TypeOf([]int16{}):
 		var data []byte
 		var err error
