@@ -65,7 +65,7 @@ func TestBitsToByteArray(t *testing.T) {
 	assertEqualByteSlice(t, expected, got)
 }
 
-func ignoreError[T any](val T, err error) T {
+func ignoreError[T any](val T, _ error) T {
 	return val
 }
 
@@ -88,4 +88,5 @@ func TestGotypeToBytes(t *testing.T) {
 	testString := []byte("test123")
 	testString = append(testString, byte(0))
 	assertEqualByteSlice(t, testString, ignoreError(gotypeToBytes("test123")))
+	assertEqualByteSlice(t, []byte("test1234"), ignoreError(gotypeToBytes("test1234")))
 }
