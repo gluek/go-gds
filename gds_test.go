@@ -8,9 +8,9 @@ import (
 	svg "github.com/ajstarks/svgo"
 )
 
-func TestReadGDS(t *testing.T) {
-	testFile := "klayout_test_aref.gds"
+const testFile = "klayout_test.gds"
 
+func TestReadGDS(t *testing.T) {
 	fh, err := os.Open(testFile)
 	if err != nil {
 		t.Fatalf("could not open test gds file: %v", err)
@@ -25,8 +25,6 @@ func TestReadGDS(t *testing.T) {
 }
 
 func TestGetLayerPolygons(t *testing.T) {
-	testFile := "klayout_test_aref.gds"
-
 	fh, err := os.Open(testFile)
 	if err != nil {
 		t.Fatalf("could not open test gds file: %v", err)
@@ -37,7 +35,7 @@ func TestGetLayerPolygons(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
-	polygons, err := library.GetLayermapPolygons("top")
+	polygons, err := library.GetLayermapPolygons("rdec_pix_ctrl_drain")
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
@@ -45,8 +43,6 @@ func TestGetLayerPolygons(t *testing.T) {
 }
 
 func TestDrawPolygons(t *testing.T) {
-	testFile := "klayout_test_aref.gds"
-
 	fh, err := os.Open(testFile)
 	if err != nil {
 		t.Fatalf("could not open test gds file: %v", err)
@@ -88,8 +84,6 @@ func TestDrawPolygons(t *testing.T) {
 }
 
 func TestReadRecords(t *testing.T) {
-	testFile := "klayout_test.gds"
-
 	fh, err := os.Open(testFile)
 	if err != nil {
 		t.Fatalf("could not open test gds file: %v", err)
@@ -106,8 +100,6 @@ func TestReadRecords(t *testing.T) {
 }
 
 func TestWriteGDS(t *testing.T) {
-	testFile := "klayout_test.gds"
-
 	fh, err := os.Open(testFile)
 	if err != nil {
 		t.Fatalf("could not open test gds file: %v", err)

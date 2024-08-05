@@ -103,16 +103,22 @@ func decodeRecord(reader *bufio.Reader) (*Record, error) {
 	if size < 4 {
 		return nil, fmt.Errorf("size smaller than 4 bytes")
 	}
+
+	datatypeString, ok := RecordTypes[datatype]
+	if !ok {
+		return nil, fmt.Errorf("unknown datatype: %s", datatype)
+	}
+
 	bData := make([]byte, size-4)
 
 	n, err = io.ReadFull(reader, bData)
 	if n != int(size-4) {
-		return nil, fmt.Errorf("wrong number of data bytes for %s/%s. expected: %d got: %d", datatype, RecordTypes[datatype], size-4, n)
+		return nil, fmt.Errorf("wrong number of data bytes for %s/%s. expected: %d got: %d", datatype, datatypeString, size-4, n)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("could not read data bytes: %v", err)
 	}
-	return &Record{Size: size, Datatype: RecordTypes[datatype], Data: bData}, nil
+	return &Record{Size: size, Datatype: datatypeString, Data: bData}, nil
 }
 
 func decodeBoundary(reader *bufio.Reader) (*Boundary, error) {
@@ -228,8 +234,12 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.XY = data.([]int32)
+		case "BGNEXTN":
+			continue
+		case "ENDEXTN":
+			continue
 		default:
-			return nil, fmt.Errorf("could not decode Path/%s: unkown datatype", newRecord.Datatype)
+			return nil, fmt.Errorf("could not decode Path/%s: unknown datatype", newRecord.Datatype)
 		}
 	}
 	return &path, nil
@@ -297,7 +307,7 @@ OuterLoop:
 			}
 			sref.XY = data.([]int32)
 		default:
-			return nil, fmt.Errorf("could not decode Sref/%s: unkown datatype", newRecord.Datatype)
+			return nil, fmt.Errorf("could not decode Sref/%s: unknown datatype", newRecord.Datatype)
 		}
 	}
 	return &sref, nil
@@ -372,7 +382,7 @@ OuterLoop:
 			}
 			aref.XY = data.([]int32)
 		default:
-			return nil, fmt.Errorf("could not decode Aref/%s: unkown datatype", newRecord.Datatype)
+			return nil, fmt.Errorf("could not decode Aref/%s: unknown datatype", newRecord.Datatype)
 		}
 	}
 	return &aref, nil
@@ -461,7 +471,7 @@ OuterLoop:
 			}
 			text.XY = data.([]int32)
 		default:
-			return nil, fmt.Errorf("could not decode Text/%s: unkown datatype", newRecord.Datatype)
+			return nil, fmt.Errorf("could not decode Text/%s: unknown datatype", newRecord.Datatype)
 		}
 	}
 	return &text, nil
@@ -515,7 +525,7 @@ OuterLoop:
 			}
 			node.XY = data.([]int32)
 		default:
-			return nil, fmt.Errorf("could not decode Node/%s: unkown datatype", newRecord.Datatype)
+			return nil, fmt.Errorf("could not decode Node/%s: unknown datatype", newRecord.Datatype)
 		}
 	}
 	return &node, nil
@@ -569,7 +579,7 @@ OuterLoop:
 			}
 			box.XY = data.([]int32)
 		default:
-			return nil, fmt.Errorf("could not decode Box/%s: unkown datatype", newRecord.Datatype)
+			return nil, fmt.Errorf("could not decode Box/%s: unknown datatype", newRecord.Datatype)
 		}
 	}
 	return &box, nil
@@ -645,7 +655,7 @@ OuterLoop:
 			}
 			structure.Elements = append(structure.Elements, element)
 		default:
-			return nil, fmt.Errorf("could not decode Structure/%s: unkown datatype", newRecord.Datatype)
+			return nil, fmt.Errorf("could not decode Structure/%s: unknown datatype", newRecord.Datatype)
 		}
 	}
 	return &structure, nil
@@ -699,7 +709,7 @@ OuterLoop:
 			}
 			library.Structures[element.StrName] = element
 		default:
-			return nil, fmt.Errorf("could not decode Library/%s: unkown datatype", newRecord.Datatype)
+			return nil, fmt.Errorf("could not decode Library/%s: unknown datatype", newRecord.Datatype)
 		}
 	}
 	return &library, nil

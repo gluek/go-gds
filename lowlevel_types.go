@@ -48,17 +48,26 @@ var RecordTypes map[string]string = map[string]string{
 	"2202": "GENERATIONS",  // number of deleted structure ?????
 	"2306": "ATTRTABLE",    // attribute table, used in combination with element properties
 	"2601": "ELFLAGS",      // template data
+	"2703": "ELKEY",        // from KLayout Source Code ???
+	"2802": "LINKTYPE",     // unreleased Feature
+	"2903": "LINKKEYS",     // unreleased Feature
 	"2a02": "NODETYPE",     // node type number for NODE element
 	"2b02": "PROPATTR",     // attribute number
 	"2c06": "PROPVALUE",    // attribute name
 	"2d00": "BOX",          // begin of box element
 	"2e02": "BOXTYPE",      // boxtype for box element
 	"2f03": "PLEX",         // plex number
+	"3003": "BGNEXTN",      // Applies to Pathtype 4. 4-byte signed integer, extension of path outline beyond the first point. Value can be negative.
+	"3103": "ENDEXTN",      // Applies to Pathtype 4. 4-byte signed integer, extension of path outline beyond the last point. Value can be negative.
 	"3202": "TAPENUM",      // tape number
 	"3302": "TAPECODE",     // tape code
+	"3503": "RESERVED",     // type was used for NUMTYPES but was not required
 	"3602": "FORMAT",       // format type
 	"3706": "MASK",         // list of layers
 	"3800": "ENDMASKS",     // end of MASK
+	"3902": "LIBDIRSIZE",   // contains the number of pages in the Library directory
+	"3A06": "SRFNAME",      // contains the name of the Sticks Rules File, if one is bound to the library
+	"3B02": "LIBSECUR",     // contains an array of Access Control List (ACL) data
 }
 
 var RecordTypesBytes map[string][]byte = map[string][]byte{
