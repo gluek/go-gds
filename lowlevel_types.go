@@ -57,8 +57,8 @@ var RecordTypes map[string]string = map[string]string{
 	"2d00": "BOX",          // begin of box element
 	"2e02": "BOXTYPE",      // boxtype for box element
 	"2f03": "PLEX",         // plex number
-	"3003": "BGNEXTN",      // Applies to Pathtype 4. 4-byte signed integer, extension of path outline beyond the first point. Value can be negative.
-	"3103": "ENDEXTN",      // Applies to Pathtype 4. 4-byte signed integer, extension of path outline beyond the last point. Value can be negative.
+	"3003": "BGNEXTN",      // path type 4 extension start
+	"3103": "ENDEXTN",      // path type 4 extension end
 	"3202": "TAPENUM",      // tape number
 	"3302": "TAPECODE",     // tape code
 	"3503": "RESERVED",     // type was used for NUMTYPES but was not required
@@ -110,11 +110,16 @@ var RecordTypesBytes map[string][]byte = map[string][]byte{
 	"BOX":          {0x2d, 0x00}, // begin of box element
 	"BOXTYPE":      {0x2e, 0x02}, // boxtype for box element
 	"PLEX":         {0x2f, 0x03}, // plex number
+	"BGNEXTN":      {0x30, 0x03}, // path type 4 extension start
+	"ENDEXTN":      {0x31, 0x03}, // path type 4 extension end
 	"TAPENUM":      {0x32, 0x02}, // tape number
 	"TAPECODE":     {0x33, 0x02}, // tape code
 	"FORMAT":       {0x36, 0x02}, // format type
 	"MASK":         {0x37, 0x06}, // list of layers
 	"ENDMASKS":     {0x38, 0x00}, // end of MASK
+	"LIBDIRSIZE":   {0x39, 0x02}, // contains the number of pages in the Library directory
+	"SRFNAME":      {0x3a, 0x06}, // contains the name of the Sticks Rules File, if one is bound to the library
+	"LIBSECUR":     {0x3b, 0x02}, // contains an array of Access Control List (ACL) data
 }
 
 type ElementType int
@@ -215,6 +220,10 @@ func (r Record) GetData() (any, error) {
 	case "BOXTYPE":
 		return getDataPoint[int16](r)
 	case "PLEX":
+		return getDataPoint[int32](r)
+	case "BGNEXTN":
+		return getDataPoint[int32](r)
+	case "ENDEXTN":
 		return getDataPoint[int32](r)
 	case "TAPENUM":
 		return getDataPoint[int16](r)
@@ -346,6 +355,8 @@ type Path struct {
 	Layer    int16
 	Datatype int16
 	Pathtype int16
+	Bgnextn  int32
+	Endextn  int32
 	Width    int32
 	XY       []int32
 }

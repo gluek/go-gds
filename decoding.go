@@ -180,6 +180,8 @@ func decodePath(reader *bufio.Reader) (*Path, error) {
 		Layer:    -1,
 		Datatype: -1,
 		Pathtype: -1,
+		Bgnextn:  0,
+		Endextn:  0,
 		Width:    -1,
 		XY:       []int32{},
 	}
@@ -222,6 +224,18 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.Pathtype = data.(int16)
+		case "BGNEXTN":
+			data, err := newRecord.GetData()
+			if err != nil {
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
+			}
+			path.Bgnextn = data.(int32)
+		case "ENDEXTN":
+			data, err := newRecord.GetData()
+			if err != nil {
+				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
+			}
+			path.Endextn = data.(int32)
 		case "WIDTH":
 			data, err := newRecord.GetData()
 			if err != nil {
@@ -234,10 +248,6 @@ OuterLoop:
 				return nil, fmt.Errorf("could not decode Path/%s: %v", newRecord.Datatype, err)
 			}
 			path.XY = data.([]int32)
-		case "BGNEXTN":
-			continue
-		case "ENDEXTN":
-			continue
 		default:
 			return nil, fmt.Errorf("could not decode Path/%s: unknown datatype", newRecord.Datatype)
 		}
