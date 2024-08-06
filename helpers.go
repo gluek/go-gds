@@ -29,6 +29,10 @@ func resolveSRefPolygons(lib *Library, layermap map[string]*PolygonLayer, ref *S
 			} else {
 				layermap[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{points}}
 			}
+		} else if element.Type() == SRefType {
+			resolveSRefPolygons(lib, layermap, element.(*SRef))
+		} else if element.Type() == ARefType {
+			resolveARefPolygons(lib, layermap, element.(*ARef))
 		}
 	}
 }

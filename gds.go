@@ -8,6 +8,7 @@ import (
 
 // https://www.artwork.com/gdsii/gdsii/index.htm
 // https://boolean.klaasholwerda.nl/interface/bnf/gdsformat.html
+// http://bitsavers.informatik.uni-stuttgart.de/pdf/calma/GDS_II_Stream_Format_Manual_6.0_Feb87.pdf
 
 func ReadGDS(f *os.File) (*Library, error) {
 	var err error

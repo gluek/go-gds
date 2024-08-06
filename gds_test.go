@@ -35,7 +35,7 @@ func TestGetLayerPolygons(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
-	polygons, err := library.GetLayermapPolygons("rdec_pix_ctrl_drain")
+	polygons, err := library.GetLayermapPolygons("top")
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
