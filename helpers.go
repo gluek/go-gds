@@ -19,10 +19,11 @@ func wrapStartEnd(elementType string, records []Record) []Record {
 	return wrappedRecords
 }
 
-func resolveSRefPolygons(lib *Library, layermap map[string]*PolygonLayer, ref *SRef) {
+func resolveSRef(lib *Library, layermap any, ref *SRef) {
 	for _, element := range lib.Structures[ref.Sname].Elements {
 		if element.Type() == PolygonType {
 			points := transformPoints(element.(Polygon).GetPoints(), ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)
+			layermap := layermap.(map[string]*PolygonLayer)
 			layer, ok := layermap[element.GetLayer()]
 			if ok {
 				layer.appendPolygon(points)
@@ -30,14 +31,14 @@ func resolveSRefPolygons(lib *Library, layermap map[string]*PolygonLayer, ref *S
 				layermap[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{points}}
 			}
 		} else if element.Type() == SRefType {
-			resolveSRefPolygons(lib, layermap, element.(*SRef))
+			resolveSRef(lib, layermap, element.(*SRef))
 		} else if element.Type() == ARefType {
-			resolveARefPolygons(lib, layermap, element.(*ARef))
+			resolveARef(lib, layermap, element.(*ARef))
 		}
 	}
 }
 
-func resolveARefPolygons(lib *Library, layermap map[string]*PolygonLayer, ref *ARef) {
+func resolveARef(lib *Library, layermap any, ref *ARef) {
 	nCol := ref.Colrow[0]
 	nRow := ref.Colrow[1]
 
@@ -50,6 +51,7 @@ func resolveARefPolygons(lib *Library, layermap map[string]*PolygonLayer, ref *A
 		for j := range nRow {
 			for _, element := range lib.Structures[ref.Sname].Elements {
 				if element.Type() == PolygonType {
+					layermap := layermap.(map[string]*PolygonLayer)
 					points := transformPoints(element.(Polygon).GetPoints(),
 						int32(math.Round(float64(refPoint[0])+float64(i)*float64(mulColSpacing[0])/float64(nCol)+float64(j)*float64(mulRowSpacing[0])/float64(nRow))),
 						int32(math.Round(float64(refPoint[1])+float64(i)*float64(mulColSpacing[1])/float64(nCol)+float64(j)*float64(mulRowSpacing[1])/float64(nRow))),

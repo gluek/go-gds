@@ -364,6 +364,13 @@ type Path struct {
 func (p Path) GetData() any {
 	return p.XY
 }
+func (p Path) GetWidth() int32 {
+	return p.Width
+}
+func (p Path) GetPathType() int16 {
+	return p.Pathtype
+}
+
 func (p Path) String() string {
 	return fmt.Sprintf("Path - ElFlags: %v, Plex: %v, Layer: %v, Datatype: %v, Pathtype: %v, Width: %v, XY: %v",
 		p.ElFlags, p.Plex, p.Layer, p.Datatype, p.Pathtype, p.Width, p.XY)

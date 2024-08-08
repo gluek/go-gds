@@ -69,10 +69,27 @@ func (l Library) GetLayermapPolygons(cell string) (map[string]*PolygonLayer, err
 				result[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{element.(Polygon).GetPoints()}}
 			}
 		} else if element.Type() == SRefType {
-			resolveSRefPolygons(&l, result, element.(*SRef))
+			resolveSRef(&l, result, element.(*SRef))
 		} else if element.Type() == ARefType {
-			resolveARefPolygons(&l, result, element.(*ARef))
+			resolveARef(&l, result, element.(*ARef))
 		}
 	}
 	return result, nil
 }
+
+// func (l Library) GetLayermapPaths(cell string) (map[string]*PathLayer) {
+// 	result := map[string]*PolygonLayer{}
+// 	structure, ok := l.Structures[cell]
+// 	if !ok {
+// 		return map[string]*PolygonLayer{}, fmt.Errorf("cell with name %s does not exist", cell)
+// 	}
+// 	for _, element := range structure.Elements {
+// 		if element.Type() == PathType {
+// 			layer, ok := result[element.GetLayer()]
+// 			if ok {
+// 				layer.appendPolygon(element.(Polygon).GetPoints())
+// 			} else {
+// 				result[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{element.(Polygon).GetPoints()}}
+// 			}
+// 		}
+// }
