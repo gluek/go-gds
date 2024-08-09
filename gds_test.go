@@ -60,6 +60,24 @@ func TestGetLayerPaths(t *testing.T) {
 	fmt.Print(paths)
 }
 
+func TestGetLayerLabels(t *testing.T) {
+	fh, err := os.Open(testFile)
+	if err != nil {
+		t.Fatalf("could not open test gds file: %v", err)
+	}
+	defer fh.Close()
+
+	library, err := ReadGDS(fh)
+	if err != nil {
+		t.Fatalf("could not parse gds file: %v", err)
+	}
+	labels, err := library.GetLayermapLabels("top")
+	if err != nil {
+		t.Fatalf("could not get layermap polygons: %v", err)
+	}
+	fmt.Print(labels)
+}
+
 func TestDrawPolygons(t *testing.T) {
 	fh, err := os.Open(testFile)
 	if err != nil {
@@ -72,7 +90,7 @@ func TestDrawPolygons(t *testing.T) {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
 
-	layermap, err := library.GetLayermapPolygons("top")
+	layermapPolygons, err := library.GetLayermapPolygons("top")
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
@@ -87,7 +105,7 @@ func TestDrawPolygons(t *testing.T) {
 	canvas := svg.New(fhSVG)
 	canvas.Start(width, height)
 	j := 0
-	for _, v := range layermap {
+	for _, v := range layermapPolygons {
 		for _, poly := range v.Polygons {
 			var x, y []int
 			for i := 0; i < len(poly); i += 2 {
@@ -98,6 +116,17 @@ func TestDrawPolygons(t *testing.T) {
 		}
 		j++
 	}
+
+	layermapLabels, err := library.GetLayermapLabels("top")
+	if err != nil {
+		t.Fatalf("could not get layermap polygons: %v", err)
+	}
+	for _, v := range layermapLabels {
+		for i := range len(v.Labels) {
+			canvas.Text(int(v.LabelCoords[i][0]), int(v.LabelCoords[i][1]), v.Labels[i], "dominant-baseline:middle;text-anchor:middle;font-size:100px;fill:white")
+		}
+	}
+
 	canvas.End()
 }
 

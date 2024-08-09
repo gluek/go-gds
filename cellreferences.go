@@ -30,6 +30,20 @@ func resolveSRef(lib *Library, layermap any, ref *SRef) {
 					Widths:    []int32{int32(float64(element.(*Path).GetWidth()) * ref.Mag)},
 				}
 			}
+		} else if element.Type() == LabelType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*LabelLayer{}) {
+			layermap := layermap.(map[string]*LabelLayer)
+			layer, ok := layermap[element.GetLayer()]
+			points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle) // Text transform
+			points = transformPoints(points, ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)                                  // Ref transform
+			if ok {
+				layer.appendLabel(points, element.(*Text).StringBody)
+			} else {
+				layermap[element.GetLayer()] = &LabelLayer{
+					Enabled:     true,
+					Labels:      []string{element.(*Text).StringBody},
+					LabelCoords: [][]int32{points},
+				}
+			}
 		} else if element.Type() == SRefType {
 			resolveSRef(lib, layermap, element.(*SRef))
 		} else if element.Type() == ARefType {
@@ -78,6 +92,20 @@ func resolveARef(lib *Library, layermap any, ref *ARef) {
 							Paths:     [][]int32{points},
 							PathTypes: []int16{element.(*Path).GetPathType()},
 							Widths:    []int32{int32(float64(element.(*Path).GetWidth()) * ref.Mag)},
+						}
+					}
+				} else if element.Type() == LabelType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*LabelLayer{}) {
+					layermap := layermap.(map[string]*LabelLayer)
+					layer, ok := layermap[element.GetLayer()]
+					points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle) // Text transform
+					points = transformPoints(points, xshift, yshift, ref.Strans, ref.Mag, ref.Angle)                                        // Ref transform
+					if ok {
+						layer.appendLabel(points, element.(*Text).StringBody)
+					} else {
+						layermap[element.GetLayer()] = &LabelLayer{
+							Enabled:     true,
+							Labels:      []string{element.(*Text).StringBody},
+							LabelCoords: [][]int32{points},
 						}
 					}
 				} else if element.Type() == SRefType {

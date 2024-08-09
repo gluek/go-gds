@@ -40,8 +40,18 @@ func (p PathLayer) String() string {
 }
 
 type LabelLayer struct {
-	Enabled bool      `json:"enable"`
-	Labels  [][]int32 `json:"labels"`
+	Enabled     bool      `json:"enable"`
+	Labels      []string  `json:"labels"`
+	LabelCoords [][]int32 `json:"labelxy"`
+}
+
+func (l *LabelLayer) appendLabel(xy []int32, text string) ([][]int32, []string) {
+	l.Labels = append(l.Labels, text)
+	l.LabelCoords = append(l.LabelCoords, xy)
+	return l.LabelCoords, l.Labels
+}
+func (l LabelLayer) String() string {
+	return fmt.Sprintf("%v, %v, %v", l.Enabled, l.Labels, l.LabelCoords)
 }
 
 // Polygon interface includes Element Type BOUNDARY and BOX

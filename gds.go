@@ -104,3 +104,31 @@ func (l Library) GetLayermapPaths(cell string) (map[string]*PathLayer, error) {
 	}
 	return result, nil
 }
+
+func (l Library) GetLayermapLabels(cell string) (map[string]*LabelLayer, error) {
+	result := map[string]*LabelLayer{}
+	structure, ok := l.Structures[cell]
+	if !ok {
+		return map[string]*LabelLayer{}, fmt.Errorf("cell with name %s does not exist", cell)
+	}
+	for _, element := range structure.Elements {
+		if element.Type() == LabelType {
+			layer, ok := result[element.GetLayer()]
+			points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle)
+			if ok {
+				layer.appendLabel(points, element.(*Text).StringBody)
+			} else {
+				result[element.GetLayer()] = &LabelLayer{
+					Enabled:     true,
+					Labels:      []string{element.(*Text).StringBody},
+					LabelCoords: [][]int32{points},
+				}
+			}
+		} else if element.Type() == SRefType {
+			resolveSRef(&l, result, element.(*SRef))
+		} else if element.Type() == ARefType {
+			resolveARef(&l, result, element.(*ARef))
+		}
+	}
+	return result, nil
+}
