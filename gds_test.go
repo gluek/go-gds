@@ -42,6 +42,24 @@ func TestGetLayerPolygons(t *testing.T) {
 	fmt.Print(polygons)
 }
 
+func TestGetLayerPaths(t *testing.T) {
+	fh, err := os.Open(testFile)
+	if err != nil {
+		t.Fatalf("could not open test gds file: %v", err)
+	}
+	defer fh.Close()
+
+	library, err := ReadGDS(fh)
+	if err != nil {
+		t.Fatalf("could not parse gds file: %v", err)
+	}
+	paths, err := library.GetLayermapPaths("top")
+	if err != nil {
+		t.Fatalf("could not get layermap polygons: %v", err)
+	}
+	fmt.Print(paths)
+}
+
 func TestDrawPolygons(t *testing.T) {
 	fh, err := os.Open(testFile)
 	if err != nil {
@@ -76,7 +94,7 @@ func TestDrawPolygons(t *testing.T) {
 				x = append(x, int(poly[i]))
 				y = append(y, int(poly[i+1]))
 			}
-			canvas.Polygon(x, y, fmt.Sprintf("stroke-width:0.5%%;fill:none;stroke:%s", colormap[j]))
+			canvas.Polygon(x, y, fmt.Sprintf("stroke-width:0.1%%;fill:none;stroke:%s", colormap[j]))
 		}
 		j++
 	}

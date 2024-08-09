@@ -543,3 +543,18 @@ func (a ARef) GetLayer() string {
 func (a ARef) Type() ElementType {
 	return ARefType
 }
+
+// Wraps a record slice with their start record "{ELEMENTTYPE}" and end record "ENDEL"
+func wrapStartEnd(elementType string, records []Record) []Record {
+	wrappedRecords := []Record{}
+	if elementType == "BGNSTR" {
+		return append(records, Record{Size: 4, Datatype: "ENDSTR", Data: []byte{}})
+	} else if elementType == "BGNLIB" {
+		return append(records, Record{Size: 4, Datatype: "ENDLIB", Data: []byte{}})
+	} else {
+		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: elementType, Data: []byte{}})
+		wrappedRecords = append(wrappedRecords, records...)
+		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
+	}
+	return wrappedRecords
+}

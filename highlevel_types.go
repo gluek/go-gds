@@ -35,12 +35,16 @@ func (p *PathLayer) appendPath(xy []int32, pathtype int16, width int32) ([][]int
 	p.Widths = append(p.Widths, width)
 	return p.Paths, p.PathTypes, p.Widths
 }
+func (p PathLayer) String() string {
+	return fmt.Sprintf("%v, %v, %v, %v", p.Enabled, p.PathTypes, p.Widths, p.Paths)
+}
 
 type LabelLayer struct {
 	Enabled bool      `json:"enable"`
 	Labels  [][]int32 `json:"labels"`
 }
 
+// Polygon interface includes Element Type BOUNDARY and BOX
 type Polygon interface {
 	GetPoints() []int32
 }

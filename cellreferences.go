@@ -2,26 +2,12 @@ package gds
 
 import (
 	"math"
+	"reflect"
 )
-
-// Wraps a record slice with their start record "{ELEMENTTYPE}" and end record "ENDEL"
-func wrapStartEnd(elementType string, records []Record) []Record {
-	wrappedRecords := []Record{}
-	if elementType == "BGNSTR" {
-		return append(records, Record{Size: 4, Datatype: "ENDSTR", Data: []byte{}})
-	} else if elementType == "BGNLIB" {
-		return append(records, Record{Size: 4, Datatype: "ENDLIB", Data: []byte{}})
-	} else {
-		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: elementType, Data: []byte{}})
-		wrappedRecords = append(wrappedRecords, records...)
-		wrappedRecords = append(wrappedRecords, Record{Size: 4, Datatype: "ENDEL", Data: []byte{}})
-	}
-	return wrappedRecords
-}
 
 func resolveSRef(lib *Library, layermap any, ref *SRef) {
 	for _, element := range lib.Structures[ref.Sname].Elements {
-		if element.Type() == PolygonType {
+		if element.Type() == PolygonType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*PolygonLayer{}) {
 			points := transformPoints(element.(Polygon).GetPoints(), ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)
 			layermap := layermap.(map[string]*PolygonLayer)
 			layer, ok := layermap[element.GetLayer()]
@@ -29,6 +15,20 @@ func resolveSRef(lib *Library, layermap any, ref *SRef) {
 				layer.appendPolygon(points)
 			} else {
 				layermap[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{points}}
+			}
+		} else if element.Type() == PathType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*PathLayer{}) {
+			points := transformPoints(element.(*Path).XY, ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)
+			layermap := layermap.(map[string]*PathLayer)
+			layer, ok := layermap[element.GetLayer()]
+			if ok {
+				layer.appendPath(points, element.(*Path).GetPathType(), int32(float64(element.(*Path).GetWidth())*ref.Mag))
+			} else {
+				layermap[element.GetLayer()] = &PathLayer{
+					Enabled:   true,
+					Paths:     [][]int32{points},
+					PathTypes: []int16{element.(*Path).GetPathType()},
+					Widths:    []int32{int32(float64(element.(*Path).GetWidth()) * ref.Mag)},
+				}
 			}
 		} else if element.Type() == SRefType {
 			resolveSRef(lib, layermap, element.(*SRef))
@@ -39,6 +39,8 @@ func resolveSRef(lib *Library, layermap any, ref *SRef) {
 }
 
 func resolveARef(lib *Library, layermap any, ref *ARef) {
+	var xshift, yshift int32
+
 	nCol := ref.Colrow[0]
 	nRow := ref.Colrow[1]
 
@@ -49,12 +51,14 @@ func resolveARef(lib *Library, layermap any, ref *ARef) {
 	mulRowSpacing = []int32{mulRowSpacing[0] - ref.XY[0], mulRowSpacing[1] - ref.XY[1]}
 	for i := range nCol {
 		for j := range nRow {
+			xshift = int32(math.Round(float64(refPoint[0]) + float64(i)*float64(mulColSpacing[0])/float64(nCol) + float64(j)*float64(mulRowSpacing[0])/float64(nRow)))
+			yshift = int32(math.Round(float64(refPoint[1]) + float64(i)*float64(mulColSpacing[1])/float64(nCol) + float64(j)*float64(mulRowSpacing[1])/float64(nRow)))
 			for _, element := range lib.Structures[ref.Sname].Elements {
-				if element.Type() == PolygonType {
+				if element.Type() == PolygonType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*PolygonLayer{}) {
 					layermap := layermap.(map[string]*PolygonLayer)
 					points := transformPoints(element.(Polygon).GetPoints(),
-						int32(math.Round(float64(refPoint[0])+float64(i)*float64(mulColSpacing[0])/float64(nCol)+float64(j)*float64(mulRowSpacing[0])/float64(nRow))),
-						int32(math.Round(float64(refPoint[1])+float64(i)*float64(mulColSpacing[1])/float64(nCol)+float64(j)*float64(mulRowSpacing[1])/float64(nRow))),
+						xshift,
+						yshift,
 						ref.Strans, ref.Mag, ref.Angle)
 					layer, ok := layermap[element.GetLayer()]
 					if ok {
@@ -62,6 +66,24 @@ func resolveARef(lib *Library, layermap any, ref *ARef) {
 					} else {
 						layermap[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{points}}
 					}
+				} else if element.Type() == PathType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*PathLayer{}) {
+					points := transformPoints(element.(*Path).XY, xshift, yshift, ref.Strans, ref.Mag, ref.Angle)
+					layermap := layermap.(map[string]*PathLayer)
+					layer, ok := layermap[element.GetLayer()]
+					if ok {
+						layer.appendPath(points, element.(*Path).GetPathType(), int32(float64(element.(*Path).GetWidth())*ref.Mag))
+					} else {
+						layermap[element.GetLayer()] = &PathLayer{
+							Enabled:   true,
+							Paths:     [][]int32{points},
+							PathTypes: []int16{element.(*Path).GetPathType()},
+							Widths:    []int32{int32(float64(element.(*Path).GetWidth()) * ref.Mag)},
+						}
+					}
+				} else if element.Type() == SRefType {
+					resolveSRef(lib, layermap, element.(*SRef))
+				} else if element.Type() == ARefType {
+					resolveARef(lib, layermap, element.(*ARef))
 				}
 			}
 		}
