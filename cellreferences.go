@@ -5,20 +5,38 @@ import (
 	"reflect"
 )
 
-func resolveSRef(lib *Library, layermap any, ref *SRef) {
+func resolveSRef(lib *Library, container any, ref *SRef) {
 	for _, element := range lib.Structures[ref.Sname].Elements {
-		if element.Type() == PolygonType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*PolygonLayer{}) {
+		if element.Type() == PolygonType {
+			// Basically checks if the calling function is GetCellData or GetLayermapPolygons
+			var layermap map[string]*PolygonLayer
+			if reflect.TypeOf(container) == reflect.TypeOf(map[string]*PolygonLayer{}) {
+				layermap = container.(map[string]*PolygonLayer)
+			} else if reflect.TypeOf(container) == reflect.TypeOf(&CellData{}) {
+				layermap = container.(*CellData).Polygons
+			} else {
+				continue
+			}
+
 			points := transformPoints(element.(Polygon).GetPoints(), ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)
-			layermap := layermap.(map[string]*PolygonLayer)
 			layer, ok := layermap[element.GetLayer()]
 			if ok {
 				layer.appendPolygon(points)
 			} else {
 				layermap[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{points}}
 			}
-		} else if element.Type() == PathType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*PathLayer{}) {
+		} else if element.Type() == PathType {
+			// Basically checks if the calling function is GetCellData or GetLayermapPaths
+			var layermap map[string]*PathLayer
+			if reflect.TypeOf(container) == reflect.TypeOf(map[string]*PathLayer{}) {
+				layermap = container.(map[string]*PathLayer)
+			} else if reflect.TypeOf(container) == reflect.TypeOf(&CellData{}) {
+				layermap = container.(*CellData).Paths
+			} else {
+				continue
+			}
+
 			points := transformPoints(element.(*Path).XY, ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)
-			layermap := layermap.(map[string]*PathLayer)
 			layer, ok := layermap[element.GetLayer()]
 			if ok {
 				layer.appendPath(points, element.(*Path).GetPathType(), int32(float64(element.(*Path).GetWidth())*ref.Mag))
@@ -30,8 +48,17 @@ func resolveSRef(lib *Library, layermap any, ref *SRef) {
 					Widths:    []int32{int32(float64(element.(*Path).GetWidth()) * ref.Mag)},
 				}
 			}
-		} else if element.Type() == LabelType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*LabelLayer{}) {
-			layermap := layermap.(map[string]*LabelLayer)
+		} else if element.Type() == LabelType {
+			// Basically checks if the calling function is GetCellData or GetLayermapLabels
+			var layermap map[string]*LabelLayer
+			if reflect.TypeOf(container) == reflect.TypeOf(map[string]*LabelLayer{}) {
+				layermap = container.(map[string]*LabelLayer)
+			} else if reflect.TypeOf(container) == reflect.TypeOf(&CellData{}) {
+				layermap = container.(*CellData).Labels
+			} else {
+				continue
+			}
+
 			layer, ok := layermap[element.GetLayer()]
 			points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle) // Text transform
 			points = transformPoints(points, ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)                                  // Ref transform
@@ -45,14 +72,14 @@ func resolveSRef(lib *Library, layermap any, ref *SRef) {
 				}
 			}
 		} else if element.Type() == SRefType {
-			resolveSRef(lib, layermap, element.(*SRef))
+			resolveSRef(lib, container, element.(*SRef))
 		} else if element.Type() == ARefType {
-			resolveARef(lib, layermap, element.(*ARef))
+			resolveARef(lib, container, element.(*ARef))
 		}
 	}
 }
 
-func resolveARef(lib *Library, layermap any, ref *ARef) {
+func resolveARef(lib *Library, container any, ref *ARef) {
 	var xshift, yshift int32
 
 	nCol := ref.Colrow[0]
@@ -68,8 +95,16 @@ func resolveARef(lib *Library, layermap any, ref *ARef) {
 			xshift = int32(math.Round(float64(refPoint[0]) + float64(i)*float64(mulColSpacing[0])/float64(nCol) + float64(j)*float64(mulRowSpacing[0])/float64(nRow)))
 			yshift = int32(math.Round(float64(refPoint[1]) + float64(i)*float64(mulColSpacing[1])/float64(nCol) + float64(j)*float64(mulRowSpacing[1])/float64(nRow)))
 			for _, element := range lib.Structures[ref.Sname].Elements {
-				if element.Type() == PolygonType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*PolygonLayer{}) {
-					layermap := layermap.(map[string]*PolygonLayer)
+				if element.Type() == PolygonType {
+					// Basically checks if the calling function is GetCellData or GetLayermapPolygons
+					var layermap map[string]*PolygonLayer
+					if reflect.TypeOf(container) == reflect.TypeOf(map[string]*PolygonLayer{}) {
+						layermap = container.(map[string]*PolygonLayer)
+					} else if reflect.TypeOf(container) == reflect.TypeOf(&CellData{}) {
+						layermap = container.(*CellData).Polygons
+					} else {
+						continue
+					}
 					points := transformPoints(element.(Polygon).GetPoints(),
 						xshift,
 						yshift,
@@ -80,9 +115,18 @@ func resolveARef(lib *Library, layermap any, ref *ARef) {
 					} else {
 						layermap[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{points}}
 					}
-				} else if element.Type() == PathType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*PathLayer{}) {
+				} else if element.Type() == PathType {
+					// Basically checks if the calling function is GetCellData or GetLayermapPaths
+					var layermap map[string]*PathLayer
+					if reflect.TypeOf(container) == reflect.TypeOf(map[string]*PathLayer{}) {
+						layermap = container.(map[string]*PathLayer)
+					} else if reflect.TypeOf(container) == reflect.TypeOf(&CellData{}) {
+						layermap = container.(*CellData).Paths
+					} else {
+						continue
+					}
+
 					points := transformPoints(element.(*Path).XY, xshift, yshift, ref.Strans, ref.Mag, ref.Angle)
-					layermap := layermap.(map[string]*PathLayer)
 					layer, ok := layermap[element.GetLayer()]
 					if ok {
 						layer.appendPath(points, element.(*Path).GetPathType(), int32(float64(element.(*Path).GetWidth())*ref.Mag))
@@ -94,8 +138,17 @@ func resolveARef(lib *Library, layermap any, ref *ARef) {
 							Widths:    []int32{int32(float64(element.(*Path).GetWidth()) * ref.Mag)},
 						}
 					}
-				} else if element.Type() == LabelType && reflect.TypeOf(layermap) == reflect.TypeOf(map[string]*LabelLayer{}) {
-					layermap := layermap.(map[string]*LabelLayer)
+				} else if element.Type() == LabelType {
+					// Basically checks if the calling function is GetCellData or GetLayermapLabels
+					var layermap map[string]*LabelLayer
+					if reflect.TypeOf(container) == reflect.TypeOf(map[string]*LabelLayer{}) {
+						layermap = container.(map[string]*LabelLayer)
+					} else if reflect.TypeOf(container) == reflect.TypeOf(&CellData{}) {
+						layermap = container.(*CellData).Labels
+					} else {
+						continue
+					}
+
 					layer, ok := layermap[element.GetLayer()]
 					points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle) // Text transform
 					points = transformPoints(points, xshift, yshift, ref.Strans, ref.Mag, ref.Angle)                                        // Ref transform
@@ -109,9 +162,9 @@ func resolveARef(lib *Library, layermap any, ref *ARef) {
 						}
 					}
 				} else if element.Type() == SRefType {
-					resolveSRef(lib, layermap, element.(*SRef))
+					resolveSRef(lib, container, element.(*SRef))
 				} else if element.Type() == ARefType {
-					resolveARef(lib, layermap, element.(*ARef))
+					resolveARef(lib, container, element.(*ARef))
 				}
 			}
 		}

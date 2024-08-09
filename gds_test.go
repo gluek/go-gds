@@ -78,6 +78,26 @@ func TestGetLayerLabels(t *testing.T) {
 	fmt.Print(labels)
 }
 
+func TestGetCellData(t *testing.T) {
+	fh, err := os.Open(testFile)
+	if err != nil {
+		t.Fatalf("could not open test gds file: %v", err)
+	}
+	defer fh.Close()
+
+	library, err := ReadGDS(fh)
+	if err != nil {
+		t.Fatalf("could not parse gds file: %v", err)
+	}
+	celldata, err := library.GetCellData("top")
+	if err != nil {
+		t.Fatalf("could not get layermap polygons: %v", err)
+	}
+	fmt.Print(celldata.Polygons, "\n")
+	fmt.Print(celldata.Paths, "\n")
+	fmt.Print(celldata.Labels, "\n")
+}
+
 func TestDrawPolygons(t *testing.T) {
 	fh, err := os.Open(testFile)
 	if err != nil {

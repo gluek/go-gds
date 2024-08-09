@@ -2,7 +2,7 @@ package gds
 
 import "fmt"
 
-type GDSData struct {
+type CellData struct {
 	Layers   []string                 `json:"layers"`
 	Polygons map[string]*PolygonLayer `json:"polygons"`
 	Paths    map[string]*PathLayer    `json:"paths"`
@@ -42,7 +42,7 @@ func (p PathLayer) String() string {
 type LabelLayer struct {
 	Enabled     bool      `json:"enable"`
 	Labels      []string  `json:"labels"`
-	LabelCoords [][]int32 `json:"labelxy"`
+	LabelCoords [][]int32 `json:"xy"`
 }
 
 func (l *LabelLayer) appendLabel(xy []int32, text string) ([][]int32, []string) {

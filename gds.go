@@ -54,6 +54,58 @@ func WriteGDS(f *os.File, lib *Library) error {
 	return nil
 }
 
+func (l Library) GetCellData(cell string) (*CellData, error) {
+	data := &CellData{
+		Layers:   []string{},
+		Polygons: map[string]*PolygonLayer{},
+		Paths:    map[string]*PathLayer{},
+		Labels:   map[string]*LabelLayer{},
+	}
+	structure, ok := l.Structures[cell]
+	if !ok {
+		return nil, fmt.Errorf("cell with name %s does not exist", cell)
+	}
+	for _, element := range structure.Elements {
+		if element.Type() == PolygonType {
+			layer, ok := data.Polygons[element.GetLayer()]
+			if ok {
+				layer.appendPolygon(element.(Polygon).GetPoints())
+			} else {
+				data.Polygons[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{element.(Polygon).GetPoints()}}
+			}
+		} else if element.Type() == PathType {
+			layer, ok := data.Paths[element.GetLayer()]
+			if ok {
+				layer.appendPath(element.(*Path).GetData().([]int32), element.(*Path).GetPathType(), element.(*Path).GetWidth())
+			} else {
+				data.Paths[element.GetLayer()] = &PathLayer{
+					Enabled:   true,
+					Paths:     [][]int32{element.(*Path).GetData().([]int32)},
+					PathTypes: []int16{element.(*Path).GetPathType()},
+					Widths:    []int32{element.(*Path).GetWidth()},
+				}
+			}
+		} else if element.Type() == LabelType {
+			layer, ok := data.Labels[element.GetLayer()]
+			points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle)
+			if ok {
+				layer.appendLabel(points, element.(*Text).StringBody)
+			} else {
+				data.Labels[element.GetLayer()] = &LabelLayer{
+					Enabled:     true,
+					Labels:      []string{element.(*Text).StringBody},
+					LabelCoords: [][]int32{points},
+				}
+			}
+		} else if element.Type() == SRefType {
+			resolveSRef(&l, data, element.(*SRef))
+		} else if element.Type() == ARefType {
+			resolveARef(&l, data, element.(*ARef))
+		}
+	}
+	return data, nil
+}
+
 func (l Library) GetLayermapPolygons(cell string) (map[string]*PolygonLayer, error) {
 	result := map[string]*PolygonLayer{}
 	structure, ok := l.Structures[cell]
