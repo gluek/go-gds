@@ -1,16 +1,15 @@
 # go-gds
 
-go-gds is a library to encode/decode Calma GDSII binary files written in Go.
+go-gds allows for encoding/decoding of Calma GDSII binary files.
 
 ## Features
 
 - Decoding binary files to go types
 - Encoding go types to binary
-- High-level api functions to extract geometries, separated into cells and layers
+- High-level api functions to extract geometries, labels and paths, separated into cells and layers
 
 ## Missing
 
-- Functions to extract labels and paths
 - Functionality to manipulate geometries, paths, labels, cells and layers
 - Entire path starting from geometries to binary
 
