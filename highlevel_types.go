@@ -39,6 +39,7 @@ func (p PathLayer) String() string {
 	return fmt.Sprintf("%v, %v, %v, %v", p.Enabled, p.PathTypes, p.Widths, p.Paths)
 }
 
+//TODO: Include vertical/horizontal anchor
 type LabelLayer struct {
 	Enabled     bool      `json:"enable"`
 	Labels      []string  `json:"labels"`

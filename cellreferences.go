@@ -5,8 +5,9 @@ import (
 	"reflect"
 )
 
-func resolveSRef(lib *Library, container any, ref *SRef) {
-	for _, element := range lib.Structures[ref.Sname].Elements {
+func resolveSRef(lib *Library, container any, references []Reference) {
+	callingRef := references[len(references)-1]
+	for _, element := range lib.Structures[callingRef.GetSname()].Elements {
 		if element.Type() == PolygonType {
 			// Basically checks if the calling function is GetCellData or GetLayermapPolygons
 			var layermap map[string]*PolygonLayer
@@ -18,7 +19,12 @@ func resolveSRef(lib *Library, container any, ref *SRef) {
 				continue
 			}
 
-			points := transformPoints(element.(Polygon).GetPoints(), ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)
+			var points []int32 = element.(Polygon).GetPoints()
+			for i := range len(references) {
+				ref := references[len(references)-i-1] // resolve from last to first
+				points = transformPoints(points, ref.(*SRef).XY[0], ref.(*SRef).XY[1], ref.(*SRef).Strans, ref.(*SRef).Mag, ref.(*SRef).Angle)
+			}
+
 			layer, ok := layermap[element.GetLayer()]
 			if ok {
 				layer.appendPolygon(points)
@@ -36,16 +42,23 @@ func resolveSRef(lib *Library, container any, ref *SRef) {
 				continue
 			}
 
-			points := transformPoints(element.(*Path).XY, ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)
+			var points []int32 = element.(*Path).XY
+			var width float64 = float64(element.(*Path).GetWidth())
+			for i := range len(references) {
+				ref := references[len(references)-i-1] // resolve from last to first
+				points = transformPoints(points, ref.(*SRef).XY[0], ref.(*SRef).XY[1], ref.(*SRef).Strans, ref.(*SRef).Mag, ref.(*SRef).Angle)
+				width = width * ref.(*SRef).Mag
+			}
+
 			layer, ok := layermap[element.GetLayer()]
 			if ok {
-				layer.appendPath(points, element.(*Path).GetPathType(), int32(float64(element.(*Path).GetWidth())*ref.Mag))
+				layer.appendPath(points, element.(*Path).GetPathType(), int32(width))
 			} else {
 				layermap[element.GetLayer()] = &PathLayer{
 					Enabled:   true,
 					Paths:     [][]int32{points},
 					PathTypes: []int16{element.(*Path).GetPathType()},
-					Widths:    []int32{int32(float64(element.(*Path).GetWidth()) * ref.Mag)},
+					Widths:    []int32{int32(width)},
 				}
 			}
 		} else if element.Type() == LabelType {
@@ -60,8 +73,12 @@ func resolveSRef(lib *Library, container any, ref *SRef) {
 			}
 
 			layer, ok := layermap[element.GetLayer()]
-			points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle) // Text transform
-			points = transformPoints(points, ref.XY[0], ref.XY[1], ref.Strans, ref.Mag, ref.Angle)                                  // Ref transform
+			// points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle) // Text transform
+			var points []int32 = element.(*Text).XY
+			for i := range len(references) {
+				ref := references[len(references)-i-1] // resolve from last to first
+				points = transformPoints(points, ref.(*SRef).XY[0], ref.(*SRef).XY[1], ref.(*SRef).Strans, ref.(*SRef).Mag, ref.(*SRef).Angle)
+			} // Ref transform
 			if ok {
 				layer.appendLabel(points, element.(*Text).StringBody)
 			} else {
@@ -72,29 +89,45 @@ func resolveSRef(lib *Library, container any, ref *SRef) {
 				}
 			}
 		} else if element.Type() == SRefType {
-			resolveSRef(lib, container, element.(*SRef))
+			newReferences := append(references, element.(*SRef))
+			resolveSRef(lib, container, newReferences)
 		} else if element.Type() == ARefType {
-			resolveARef(lib, container, element.(*ARef))
+			newReferences := append(references, element.(*ARef))
+			resolveARef(lib, container, newReferences)
 		}
 	}
 }
 
-func resolveARef(lib *Library, container any, ref *ARef) {
+func resolveARef(lib *Library, container any, references []Reference) {
+	callingRef := references[len(references)-1].(*ARef)
 	var xshift, yshift int32
 
-	nCol := ref.Colrow[0]
-	nRow := ref.Colrow[1]
+	nCol := callingRef.Colrow[0]
+	nRow := callingRef.Colrow[1]
 
-	refPoint := ref.XY[:2]
-	mulColSpacing := ref.XY[2:4]
-	mulRowSpacing := ref.XY[4:]
-	mulColSpacing = []int32{mulColSpacing[0] - ref.XY[0], mulColSpacing[1] - ref.XY[1]}
-	mulRowSpacing = []int32{mulRowSpacing[0] - ref.XY[0], mulRowSpacing[1] - ref.XY[1]}
+	refPoint := callingRef.XY[:2]
+	mulColSpacing := callingRef.XY[2:4]
+	mulRowSpacing := callingRef.XY[4:]
+	mulColSpacing = []int32{mulColSpacing[0] - callingRef.XY[0], mulColSpacing[1] - callingRef.XY[1]}
+	mulRowSpacing = []int32{mulRowSpacing[0] - callingRef.XY[0], mulRowSpacing[1] - callingRef.XY[1]}
 	for i := range nCol {
 		for j := range nRow {
 			xshift = int32(math.Round(float64(refPoint[0]) + float64(i)*float64(mulColSpacing[0])/float64(nCol) + float64(j)*float64(mulRowSpacing[0])/float64(nRow)))
 			yshift = int32(math.Round(float64(refPoint[1]) + float64(i)*float64(mulColSpacing[1])/float64(nCol) + float64(j)*float64(mulRowSpacing[1])/float64(nRow)))
-			for _, element := range lib.Structures[ref.Sname].Elements {
+			newReferences := references
+
+			for _, element := range lib.Structures[callingRef.GetSname()].Elements {
+				newSref := &SRef{
+					ElFlags: callingRef.ElFlags,
+					Plex:    callingRef.Plex,
+					Sname:   callingRef.Sname,
+					Strans:  callingRef.Strans,
+					Mag:     callingRef.Mag,
+					Angle:   callingRef.Angle,
+					XY:      []int32{xshift, yshift},
+				}
+				newReferences[len(newReferences)-1] = newSref
+
 				if element.Type() == PolygonType {
 					// Basically checks if the calling function is GetCellData or GetLayermapPolygons
 					var layermap map[string]*PolygonLayer
@@ -105,10 +138,13 @@ func resolveARef(lib *Library, container any, ref *ARef) {
 					} else {
 						continue
 					}
-					points := transformPoints(element.(Polygon).GetPoints(),
-						xshift,
-						yshift,
-						ref.Strans, ref.Mag, ref.Angle)
+
+					var points []int32 = element.(Polygon).GetPoints()
+					for i := range len(newReferences) {
+						ref := references[len(newReferences)-i-1] // resolve from last to first
+						points = transformPoints(points, ref.(*SRef).XY[0], ref.(*SRef).XY[1], ref.(*SRef).Strans, ref.(*SRef).Mag, ref.(*SRef).Angle)
+					}
+
 					layer, ok := layermap[element.GetLayer()]
 					if ok {
 						layer.appendPolygon(points)
@@ -126,16 +162,23 @@ func resolveARef(lib *Library, container any, ref *ARef) {
 						continue
 					}
 
-					points := transformPoints(element.(*Path).XY, xshift, yshift, ref.Strans, ref.Mag, ref.Angle)
+					var points []int32 = element.(*Path).XY
+					var width float64 = float64(element.(*Path).GetWidth())
+					for i := range len(newReferences) {
+						ref := references[len(newReferences)-i-1] // resolve from last to first
+						points = transformPoints(points, ref.(*SRef).XY[0], ref.(*SRef).XY[1], ref.(*SRef).Strans, ref.(*SRef).Mag, ref.(*SRef).Angle)
+						width = width * ref.(*SRef).Mag
+					}
+
 					layer, ok := layermap[element.GetLayer()]
 					if ok {
-						layer.appendPath(points, element.(*Path).GetPathType(), int32(float64(element.(*Path).GetWidth())*ref.Mag))
+						layer.appendPath(points, element.(*Path).GetPathType(), int32(width))
 					} else {
 						layermap[element.GetLayer()] = &PathLayer{
 							Enabled:   true,
 							Paths:     [][]int32{points},
 							PathTypes: []int16{element.(*Path).GetPathType()},
-							Widths:    []int32{int32(float64(element.(*Path).GetWidth()) * ref.Mag)},
+							Widths:    []int32{int32(width)},
 						}
 					}
 				} else if element.Type() == LabelType {
@@ -150,8 +193,13 @@ func resolveARef(lib *Library, container any, ref *ARef) {
 					}
 
 					layer, ok := layermap[element.GetLayer()]
-					points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle) // Text transform
-					points = transformPoints(points, xshift, yshift, ref.Strans, ref.Mag, ref.Angle)                                        // Ref transform
+					// points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle) // Text transform
+					var points []int32 = element.(*Text).XY
+					for i := range len(newReferences) {
+						ref := references[len(newReferences)-i-1] // resolve from last to first
+						points = transformPoints(points, ref.(*SRef).XY[0], ref.(*SRef).XY[1], ref.(*SRef).Strans, ref.(*SRef).Mag, ref.(*SRef).Angle)
+					} // Ref transform
+
 					if ok {
 						layer.appendLabel(points, element.(*Text).StringBody)
 					} else {
@@ -162,9 +210,11 @@ func resolveARef(lib *Library, container any, ref *ARef) {
 						}
 					}
 				} else if element.Type() == SRefType {
-					resolveSRef(lib, container, element.(*SRef))
+					newReferences := append(references, element.(*SRef))
+					resolveSRef(lib, container, newReferences)
 				} else if element.Type() == ARefType {
-					resolveARef(lib, container, element.(*ARef))
+					newReferences := append(references, element.(*ARef))
+					resolveARef(lib, container, newReferences)
 				}
 			}
 		}
@@ -176,7 +226,7 @@ func transformPoints(array []int32, xshift int32, yshift int32, strans uint16, m
 	transformedArray := make([]int32, len(array))
 	for i := 0; i < len(array); i += 2 {
 		var x, y float64
-		// y-Axis mirroring
+		// x-Axis mirroring
 		x = float64(array[i])
 		y = float64(array[i+1]) * (0.5 - float64((strans >> 15))) * 2
 		// rotation + magnification

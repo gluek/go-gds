@@ -87,7 +87,7 @@ func (l Library) GetCellData(cell string) (*CellData, error) {
 			}
 		} else if element.Type() == LabelType {
 			layer, ok := data.Labels[element.GetLayer()]
-			points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle)
+			points := element.(*Text).XY
 			if ok {
 				layer.appendLabel(points, element.(*Text).StringBody)
 			} else {
@@ -98,9 +98,9 @@ func (l Library) GetCellData(cell string) (*CellData, error) {
 				}
 			}
 		} else if element.Type() == SRefType {
-			resolveSRef(&l, data, element.(*SRef))
+			resolveSRef(&l, data, []Reference{element.(*SRef)})
 		} else if element.Type() == ARefType {
-			resolveARef(&l, data, element.(*ARef))
+			resolveARef(&l, data, []Reference{element.(*ARef)})
 		}
 	}
 	return data, nil
@@ -121,9 +121,9 @@ func (l Library) GetLayermapPolygons(cell string) (map[string]*PolygonLayer, err
 				result[element.GetLayer()] = &PolygonLayer{Enabled: true, Polygons: [][]int32{element.(Polygon).GetPoints()}}
 			}
 		} else if element.Type() == SRefType {
-			resolveSRef(&l, result, element.(*SRef))
+			resolveSRef(&l, result, []Reference{element.(*SRef)})
 		} else if element.Type() == ARefType {
-			resolveARef(&l, result, element.(*ARef))
+			resolveARef(&l, result, []Reference{element.(*ARef)})
 		}
 	}
 	return result, nil
@@ -149,9 +149,9 @@ func (l Library) GetLayermapPaths(cell string) (map[string]*PathLayer, error) {
 				}
 			}
 		} else if element.Type() == SRefType {
-			resolveSRef(&l, result, element.(*SRef))
+			resolveSRef(&l, result, []Reference{element.(*SRef)})
 		} else if element.Type() == ARefType {
-			resolveARef(&l, result, element.(*ARef))
+			resolveARef(&l, result, []Reference{element.(*ARef)})
 		}
 	}
 	return result, nil
@@ -166,7 +166,7 @@ func (l Library) GetLayermapLabels(cell string) (map[string]*LabelLayer, error) 
 	for _, element := range structure.Elements {
 		if element.Type() == LabelType {
 			layer, ok := result[element.GetLayer()]
-			points := transformPoints(element.(*Text).XY, 0, 0, element.(*Text).Strans, element.(*Text).Mag, element.(*Text).Angle)
+			points := element.(*Text).XY
 			if ok {
 				layer.appendLabel(points, element.(*Text).StringBody)
 			} else {
@@ -177,9 +177,9 @@ func (l Library) GetLayermapLabels(cell string) (map[string]*LabelLayer, error) 
 				}
 			}
 		} else if element.Type() == SRefType {
-			resolveSRef(&l, result, element.(*SRef))
+			resolveSRef(&l, result, []Reference{element.(*SRef)})
 		} else if element.Type() == ARefType {
-			resolveARef(&l, result, element.(*ARef))
+			resolveARef(&l, result, []Reference{element.(*ARef)})
 		}
 	}
 	return result, nil

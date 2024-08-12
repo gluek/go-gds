@@ -8,7 +8,8 @@ import (
 	svg "github.com/ajstarks/svgo"
 )
 
-const testFile = "klayout_test.gds"
+const testFile = "pixel.gds"
+const cell = "pixel"
 
 func TestReadGDS(t *testing.T) {
 	fh, err := os.Open(testFile)
@@ -35,7 +36,7 @@ func TestGetLayerPolygons(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
-	polygons, err := library.GetLayermapPolygons("top")
+	polygons, err := library.GetLayermapPolygons(cell)
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
@@ -53,7 +54,7 @@ func TestGetLayerPaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
-	paths, err := library.GetLayermapPaths("top")
+	paths, err := library.GetLayermapPaths(cell)
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
@@ -71,7 +72,7 @@ func TestGetLayerLabels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
-	labels, err := library.GetLayermapLabels("top")
+	labels, err := library.GetLayermapLabels(cell)
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
@@ -89,7 +90,7 @@ func TestGetCellData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
-	celldata, err := library.GetCellData("top")
+	celldata, err := library.GetCellData(cell)
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
@@ -110,7 +111,7 @@ func TestDrawPolygons(t *testing.T) {
 		t.Fatalf("could not parse gds file: %v", err)
 	}
 
-	layermapPolygons, err := library.GetLayermapPolygons("top")
+	layermapPolygons, err := library.GetLayermapPolygons(cell)
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
@@ -128,16 +129,19 @@ func TestDrawPolygons(t *testing.T) {
 	for _, v := range layermapPolygons {
 		for _, poly := range v.Polygons {
 			var x, y []int
+			if len(poly)%2 == 1 {
+				t.Fatalf("polygon: len(x) != len(y): %v", poly)
+			}
 			for i := 0; i < len(poly); i += 2 {
 				x = append(x, int(poly[i]))
 				y = append(y, int(poly[i+1]))
 			}
-			canvas.Polygon(x, y, fmt.Sprintf("stroke-width:0.1%%;fill:none;stroke:%s", colormap[j]))
+			canvas.Polygon(x, y, fmt.Sprintf("stroke-width:0.1%%;fill:none;stroke:%s", colormap[j%len(colormap)]))
 		}
 		j++
 	}
 
-	layermapLabels, err := library.GetLayermapLabels("top")
+	layermapLabels, err := library.GetLayermapLabels(cell)
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}

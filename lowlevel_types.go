@@ -508,6 +508,9 @@ func (s SRef) Records() ([]Record, error) {
 func (s SRef) GetLayer() string {
 	return "cellref"
 }
+func (s SRef) GetSname() string {
+	return s.Sname
+}
 func (s SRef) Type() ElementType {
 	return SRefType
 }
@@ -539,6 +542,9 @@ func (a ARef) Records() ([]Record, error) {
 }
 func (a ARef) GetLayer() string {
 	return "cellref"
+}
+func (a ARef) GetSname() string {
+	return a.Sname
 }
 func (a ARef) Type() ElementType {
 	return ARefType
