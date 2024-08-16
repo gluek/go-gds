@@ -8,8 +8,8 @@ import (
 	svg "github.com/ajstarks/svgo"
 )
 
-const testFile = "pixel.gds"
-const cell = "pixel"
+const testFile = "klayout_test.gds"
+const cell = "top"
 
 func TestReadGDS(t *testing.T) {
 	fh, err := os.Open(testFile)

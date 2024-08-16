@@ -26,14 +26,18 @@ type PathLayer struct {
 	Enabled   bool      `json:"enable"`
 	PathTypes []int16   `json:"types"`
 	Widths    []int32   `json:"widths"`
+	ExtBegin  []int32   `json:"extbegin"`
+	ExtEnd    []int32   `json:"extend"`
 	Paths     [][]int32 `json:"paths"`
 }
 
-func (p *PathLayer) appendPath(xy []int32, pathtype int16, width int32) ([][]int32, []int16, []int32) {
+func (p *PathLayer) appendPath(xy []int32, pathtype int16, width int32, extbegin int32, extend int32) ([][]int32, []int16, []int32, []int32, []int32) {
 	p.Paths = append(p.Paths, xy)
 	p.PathTypes = append(p.PathTypes, pathtype)
 	p.Widths = append(p.Widths, width)
-	return p.Paths, p.PathTypes, p.Widths
+	p.ExtBegin = append(p.ExtBegin, extbegin)
+	p.ExtEnd = append(p.ExtEnd, extend)
+	return p.Paths, p.PathTypes, p.Widths, p.ExtBegin, p.ExtEnd
 }
 func (p PathLayer) String() string {
 	return fmt.Sprintf("%v, %v, %v, %v", p.Enabled, p.PathTypes, p.Widths, p.Paths)

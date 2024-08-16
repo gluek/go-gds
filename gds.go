@@ -76,13 +76,15 @@ func (l Library) GetCellData(cell string) (*CellData, error) {
 		} else if element.Type() == PathType {
 			layer, ok := data.Paths[element.GetLayer()]
 			if ok {
-				layer.appendPath(element.(*Path).GetData().([]int32), element.(*Path).GetPathType(), element.(*Path).GetWidth())
+				layer.appendPath(element.(*Path).XY, element.(*Path).Pathtype, element.(*Path).Width, element.(*Path).Bgnextn, element.(*Path).Endextn)
 			} else {
 				data.Paths[element.GetLayer()] = &PathLayer{
 					Enabled:   true,
-					Paths:     [][]int32{element.(*Path).GetData().([]int32)},
-					PathTypes: []int16{element.(*Path).GetPathType()},
-					Widths:    []int32{element.(*Path).GetWidth()},
+					Paths:     [][]int32{element.(*Path).XY},
+					PathTypes: []int16{element.(*Path).Pathtype},
+					ExtBegin:  []int32{element.(*Path).Bgnextn},
+					ExtEnd:    []int32{element.(*Path).Endextn},
+					Widths:    []int32{element.(*Path).Width},
 				}
 			}
 		} else if element.Type() == LabelType {
@@ -139,13 +141,15 @@ func (l Library) GetLayermapPaths(cell string) (map[string]*PathLayer, error) {
 		if element.Type() == PathType {
 			layer, ok := result[element.GetLayer()]
 			if ok {
-				layer.appendPath(element.(*Path).GetData().([]int32), element.(*Path).GetPathType(), element.(*Path).GetWidth())
+				layer.appendPath(element.(*Path).XY, element.(*Path).Pathtype, element.(*Path).Width, element.(*Path).Bgnextn, element.(*Path).Endextn)
 			} else {
 				result[element.GetLayer()] = &PathLayer{
 					Enabled:   true,
-					Paths:     [][]int32{element.(*Path).GetData().([]int32)},
-					PathTypes: []int16{element.(*Path).GetPathType()},
-					Widths:    []int32{element.(*Path).GetWidth()},
+					Paths:     [][]int32{element.(*Path).XY},
+					PathTypes: []int16{element.(*Path).Pathtype},
+					ExtBegin:  []int32{element.(*Path).Bgnextn},
+					ExtEnd:    []int32{element.(*Path).Endextn},
+					Widths:    []int32{element.(*Path).Width},
 				}
 			}
 		} else if element.Type() == SRefType {
