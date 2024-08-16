@@ -94,6 +94,7 @@ func TestGetCellData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not get layermap polygons: %v", err)
 	}
+	fmt.Print(celldata.Layers, "\n")
 	fmt.Print(celldata.Polygons, "\n")
 	fmt.Print(celldata.Paths, "\n")
 	fmt.Print(celldata.Labels, "\n")

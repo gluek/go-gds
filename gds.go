@@ -105,6 +105,8 @@ func (l Library) GetCellData(cell string) (*CellData, error) {
 			resolveARef(&l, data, []Reference{element.(*ARef)})
 		}
 	}
+
+	data.PopulateLayers()
 	return data, nil
 }
 

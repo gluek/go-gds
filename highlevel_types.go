@@ -1,12 +1,68 @@
 package gds
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"slices"
+	"strconv"
+	"strings"
+)
 
 type CellData struct {
 	Layers   []string                 `json:"layers"`
 	Polygons map[string]*PolygonLayer `json:"polygons"`
 	Paths    map[string]*PathLayer    `json:"paths"`
 	Labels   map[string]*LabelLayer   `json:"labels"`
+}
+
+// implement sort interface
+type ByLayer []string
+
+func errHandlerAtoi(a int, e error) int {
+	if e != nil {
+		log.Println("could not convert str to int")
+	}
+	return a
+}
+
+func compareLayers(i string, j string) int {
+	iSplit := strings.Split(i, "/")
+	jSplit := strings.Split(j, "/")
+	iNum := errHandlerAtoi(strconv.Atoi(iSplit[0]))*1000 + errHandlerAtoi(strconv.Atoi(iSplit[1]))
+	jNum := errHandlerAtoi(strconv.Atoi(jSplit[0]))*1000 + errHandlerAtoi(strconv.Atoi(jSplit[1]))
+	if iNum < jNum {
+		return -1
+	} else if iNum > jNum {
+		return 1
+	} else {
+		return 0
+	}
+}
+
+func (c *CellData) PopulateLayers() {
+	layerSet := map[string]bool{}
+	for k, _ := range c.Polygons {
+		_, ok := layerSet[k]
+		if !ok {
+			layerSet[k] = true
+		}
+	}
+	for k, _ := range c.Paths {
+		_, ok := layerSet[k]
+		if !ok {
+			layerSet[k] = true
+		}
+	}
+	for k, _ := range c.Labels {
+		_, ok := layerSet[k]
+		if !ok {
+			layerSet[k] = true
+		}
+	}
+	for k, _ := range layerSet {
+		c.Layers = append(c.Layers, k)
+	}
+	slices.SortFunc(c.Layers, compareLayers)
 }
 
 type PolygonLayer struct {
@@ -43,7 +99,7 @@ func (p PathLayer) String() string {
 	return fmt.Sprintf("%v, %v, %v, %v", p.Enabled, p.PathTypes, p.Widths, p.Paths)
 }
 
-//TODO: Include vertical/horizontal anchor
+// TODO: Include vertical/horizontal anchor
 type LabelLayer struct {
 	Enabled     bool      `json:"enable"`
 	Labels      []string  `json:"labels"`
